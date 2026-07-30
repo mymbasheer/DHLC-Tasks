@@ -432,19 +432,29 @@ export const Invitations: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-900">
               {personnelList.map(u => {
+                const isAdmin = u.role === 'Admin';
                 const p = u.permissions || {};
+                const canCreateTasks = p.canCreateTasks ?? true;
+                const canManageUsers = isAdmin || !!p.canManageUsers;
+                const canManageDepartments = isAdmin || !!p.canManageDepartments;
+                const canViewReports = isAdmin || !!p.canViewReports;
+                const canExportReports = isAdmin || !!p.canExportReports;
+                const canViewMap = isAdmin || !!p.canViewMap;
+                const canDeleteTasks = isAdmin || !!p.canDeleteTasks;
+                const canBroadcast = isAdmin || !!p.canBroadcast;
+
                 return (
                   <tr key={u.uid} className="hover:bg-slate-900/30">
                     <td className="p-3 font-bold text-slate-200">{u.name}</td>
                     <td className="p-3 font-semibold text-brand-400">{u.role}</td>
-                    <td className="p-3 text-center font-bold">{p.canCreateTasks ? '✅' : '❌'}</td>
-                    <td className="p-3 text-center font-bold">{p.canManageUsers ? '✅' : '❌'}</td>
-                    <td className="p-3 text-center font-bold">{p.canManageDepartments ? '✅' : '❌'}</td>
-                    <td className="p-3 text-center font-bold">{p.canViewReports ? '✅' : '❌'}</td>
-                    <td className="p-3 text-center font-bold">{p.canExportReports ? '✅' : '❌'}</td>
-                    <td className="p-3 text-center font-bold">{p.canViewMap ? '✅' : '❌'}</td>
-                    <td className="p-3 text-center font-bold">{p.canDeleteTasks ? '✅' : '❌'}</td>
-                    <td className="p-3 text-center font-bold">{p.canBroadcast ? '✅' : '❌'}</td>
+                    <td className="p-3 text-center font-bold">{canCreateTasks ? '✅' : '❌'}</td>
+                    <td className="p-3 text-center font-bold">{canManageUsers ? '✅' : '❌'}</td>
+                    <td className="p-3 text-center font-bold">{canManageDepartments ? '✅' : '❌'}</td>
+                    <td className="p-3 text-center font-bold">{canViewReports ? '✅' : '❌'}</td>
+                    <td className="p-3 text-center font-bold">{canExportReports ? '✅' : '❌'}</td>
+                    <td className="p-3 text-center font-bold">{canViewMap ? '✅' : '❌'}</td>
+                    <td className="p-3 text-center font-bold">{canDeleteTasks ? '✅' : '❌'}</td>
+                    <td className="p-3 text-center font-bold">{canBroadcast ? '✅' : '❌'}</td>
                   </tr>
                 );
               })}

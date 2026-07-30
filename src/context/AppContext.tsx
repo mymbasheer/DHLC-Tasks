@@ -23,12 +23,12 @@ import {
   deleteObject,
   signInWithPopup,
   GoogleAuthProvider,
-  runTransaction,
-  signInWithCredential
+  runTransaction
 } from '../firebase';
 import { requestNotificationPermission, setupMessageListener } from '../firebase-messaging';
 import { 
   User, 
+  UserPermissions,
   Task, 
   Invitation, 
   Comment,
