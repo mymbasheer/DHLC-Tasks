@@ -35,35 +35,45 @@ export const Reports: React.FC = () => {
       <style>{`
         @media print {
           @page {
-            size: landscape;
-            margin: 5mm;
+            size: A4 landscape;
+            margin: 6mm;
           }
           html, body, #root {
             background: white !important;
             color: black !important;
             height: auto !important;
             overflow: visible !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          .space-y-6, .space-y-4, .space-y-2 {
+            margin: 0 !important;
+            padding: 0 !important;
           }
           .space-y-6 > * + *, .space-y-4 > * + *, .space-y-2 > * + * {
             margin-top: 0 !important;
           }
           .mb-6 {
             margin-bottom: 0.25rem !important;
+            padding-bottom: 0.25rem !important;
           }
           table {
             border-collapse: collapse !important;
             width: 100% !important;
+            margin: 0 !important;
           }
           tr {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
           }
           td, th {
-            padding: 4px 6px !important;
-            vertical-align: top !important;
+            padding: 3px 5px !important;
+            vertical-align: middle !important;
             color: black !important;
             opacity: 1 !important;
             visibility: visible !important;
+            font-size: 11px !important;
+            line-height: 1.2 !important;
           }
           thead {
             display: table-header-group !important;
