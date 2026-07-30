@@ -36,7 +36,7 @@ export const Reports: React.FC = () => {
         @media print {
           @page {
             size: landscape;
-            margin: 5mm;
+            margin: 4mm;
           }
           html, body, #root {
             background: white !important;
@@ -50,7 +50,7 @@ export const Reports: React.FC = () => {
           header, nav, aside, .print\\:hidden {
             display: none !important;
           }
-          main {
+          main, div, section {
             padding: 0 !important;
             margin: 0 !important;
             display: block !important;
@@ -58,15 +58,9 @@ export const Reports: React.FC = () => {
           }
           .glass, .glass * {
             background: transparent !important;
-            border-color: black !important;
+            border: none !important;
             box-shadow: none !important;
             backdrop-filter: none !important;
-          }
-          .space-y-6, .space-y-4, .space-y-2, div, section {
-            margin-top: 0 !important;
-            margin-bottom: 0 !important;
-            padding-top: 0 !important;
-            padding-bottom: 0 !important;
           }
           table {
             border-collapse: collapse !important;
@@ -80,21 +74,16 @@ export const Reports: React.FC = () => {
           }
           td, th {
             padding: 2px 4px !important;
-            vertical-align: top !important;
+            vertical-align: middle !important;
             color: black !important;
-            opacity: 1 !important;
-            visibility: visible !important;
-            border: 1px solid #333 !important;
+            border: 1px solid #000 !important;
             font-size: 10px !important;
-            line-height: 1.15 !important;
+            line-height: 1.1 !important;
             word-wrap: break-word !important;
             overflow-wrap: break-word !important;
           }
-          thead {
-            display: table-header-group !important;
-          }
           thead th {
-            background-color: #f0f0f0 !important;
+            background-color: #e5e7eb !important;
             font-weight: bold !important;
             font-size: 9px !important;
             text-transform: uppercase !important;
@@ -103,13 +92,11 @@ export const Reports: React.FC = () => {
       `}</style>
 
       {/* Printable Official Header (Shown only during printing) */}
-      <div className="hidden print:block mb-6 border-b-2 border-black pb-4 text-black">
-        <h1 className="text-2xl font-bold uppercase tracking-wider">DHLC TASKS — DEPARTMENT WORK ORDERS & TASKS MASTER REPORT</h1>
-        <p className="text-xs mt-1">Generated Date: {new Date().toLocaleString()} | Total Tasks: {filteredReportTasks.length}</p>
-        <div className="flex flex-wrap gap-4 text-xs mt-2 pt-2 border-t border-gray-300">
-          <span>Filter Status: <strong>{reportFilters.status || 'All Statuses'}</strong></span>
-          <span>Department: <strong>{departmentsList.find(d => d.departmentId === reportFilters.departmentId)?.departmentName || 'All Departments'}</strong></span>
-          <span>Assignee: <strong>{usersList.find(u => u.uid === reportFilters.assigneeId)?.name || 'All Personnel'}</strong></span>
+      <div className="hidden print:block mb-2 border-b-2 border-black pb-2 text-black">
+        <h1 className="text-xl font-bold uppercase tracking-wider">DHLC TASKS — DEPARTMENT WORK ORDERS & TASKS MASTER REPORT</h1>
+        <div className="flex justify-between text-[10px] mt-1 pt-1 border-t border-gray-400">
+          <span>Generated: {new Date().toLocaleString()} | Total Tasks: {filteredReportTasks.length}</span>
+          <span>Filter Status: {reportFilters.status || 'All'} | Dept: {departmentsList.find(d => d.departmentId === reportFilters.departmentId)?.departmentName || 'All'}</span>
         </div>
       </div>
 
@@ -259,7 +246,7 @@ export const Reports: React.FC = () => {
       <div className="space-y-6">
         {/* 1. Task Operations Report */}
         <div className="space-y-2">
-          <h3 className="text-sm font-bold text-slate-350 uppercase tracking-wider print:text-black">Task Operations Master Report</h3>
+          <h3 className="text-sm font-bold text-slate-350 uppercase tracking-wider print:hidden">Task Operations Master Report</h3>
           <div className="glass rounded-xl overflow-hidden print:border print:border-black print:bg-white print:shadow-none">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-300 print:text-black print:border-collapse">
