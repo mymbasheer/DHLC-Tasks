@@ -341,7 +341,6 @@ export const Invitations: React.FC = () => {
 
   // Bulk User Selection State
   const [selectedUserUids, setSelectedUserUids] = useState<string[]>([]);
-  const [bulkRole, setBulkRole] = useState<'Admin' | 'User'>('User');
   const [bulkDeptId, setBulkDeptId] = useState<string>('');
   const bulkPerms = {
     canCreateTasks: true,
@@ -391,40 +390,31 @@ export const Invitations: React.FC = () => {
     const deptIds = matchedDept ? [matchedDept.departmentId] : [];
     const deptNames = matchedDept ? [matchedDept.departmentName] : [];
 
-    const effectivePerms = bulkRole === 'Admin' ? {
-      canCreateTasks: true,
-      canManageUsers: true,
-      canManageDepartments: true,
-      canViewReports: true,
-      canExportReports: true,
-      canViewPerformance: true,
-      canViewMap: true,
-      canDeleteTasks: true,
-      canBroadcast: true,
-    } : bulkPerms;
-
+    let count = 0;
     for (const uid of selectedUserUids) {
       const u = personnelList.find(item => item.uid === uid);
-      if (u) {
+      // Skip if user is an existing Admin or current logged in user
+      if (u && u.role !== 'Admin') {
         await updateUserRights(
           uid,
           u.name,
           u.email,
-          bulkRole,
+          'User', // Always assign Personnel (User) role in bulk activation
           u.mobileNumber || '',
           deptId || u.departmentId,
           deptName || u.departmentName,
           deptIds.length > 0 ? deptIds : (u.departmentIds || []),
           deptNames.length > 0 ? deptNames : (u.departmentNames || []),
-          effectivePerms
+          bulkPerms
         );
         if (u.status !== 'Active') {
           await toggleUserStatus(uid, 'Suspended'); // Toggles Suspended -> Active
         }
+        count++;
       }
     }
 
-    showToast(`Bulk updated & activated ${selectedUserUids.length} users successfully!`, 'success');
+    showToast(`Bulk updated & activated ${count} user(s) as Personnel! (Admin accounts skipped)`, 'success');
     setSelectedUserUids([]);
   };
 
@@ -524,14 +514,9 @@ export const Invitations: React.FC = () => {
               <span className="font-bold text-brand-300">
                 Selected: {selectedUserUids.length} User(s)
               </span>
-              <select
-                value={bulkRole}
-                onChange={(e) => setBulkRole(e.target.value as 'Admin' | 'User')}
-                className="bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-xs text-slate-200 font-semibold"
-              >
-                <option value="User">Assign Personnel (User) Role</option>
-                <option value="Admin">Assign Admin Role</option>
-              </select>
+              <span className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 font-semibold">
+                Role: Personnel (User)
+              </span>
 
               <select
                 value={bulkDeptId}
