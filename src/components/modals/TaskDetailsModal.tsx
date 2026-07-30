@@ -426,6 +426,68 @@ export const TaskDetailsModal: React.FC = () => {
                       </div>
                     </div>
                   )}
+                  {/* SLA Countdown Timer Badge */}
+                  {currentDetailTask.dueDate && currentDetailTask.status !== 'Completed' && (
+                    <div className="bg-slate-900 border border-slate-800 p-2.5 rounded-xl flex items-center justify-between text-xs">
+                      <span className="font-bold text-slate-400 uppercase text-[10px]">SLA Remaining:</span>
+                      {(() => {
+                        const now = Date.now();
+                        const due = new Date(currentDetailTask.dueDate).getTime();
+                        const diff = due - now;
+                        if (diff <= 0) {
+                          return <span className="font-bold text-rose-500 animate-pulse">🚨 OVERDUE by {Math.abs(Math.floor(diff / (1000 * 60 * 60)))}h {Math.abs(Math.floor((diff / (1000 * 60)) % 60))}m</span>;
+                        }
+                        const hrs = Math.floor(diff / (1000 * 60 * 60));
+                        const mins = Math.floor((diff / (1000 * 60)) % 60);
+                        return <span className="font-bold text-amber-400 font-mono">⏳ {hrs}h {mins}m remaining</span>;
+                      })()}
+                    </div>
+                  )}
+
+                  {/* Work Order Checklist */}
+                  {currentDetailTask.checklist && currentDetailTask.checklist.length > 0 && (
+                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl space-y-2">
+                      <span className="font-bold text-slate-300 uppercase text-[10px] block">Work Order Checklist</span>
+                      <div className="space-y-1.5">
+                        {currentDetailTask.checklist.map((item, idx) => (
+                          <div key={item.itemId || idx} className="flex items-center space-x-2 text-xs">
+                            <input
+                              type="checkbox"
+                              checked={item.completed}
+                              onChange={async () => {
+                                const updatedList = currentDetailTask.checklist!.map(c => 
+                                  c.itemId === item.itemId ? { ...c, completed: !c.completed } : c
+                                );
+                                await updateTaskDetails({ taskId: currentDetailTask.taskId, checklist: updatedList });
+                              }}
+                              className="rounded bg-slate-900 border-slate-800 text-brand-500 h-4 w-4 cursor-pointer"
+                            />
+                            <span className={item.completed ? 'line-through text-slate-500' : 'text-slate-200'}>
+                              {item.title}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Audit Trail Timeline */}
+                  {currentDetailTask.auditTrail && currentDetailTask.auditTrail.length > 0 && (
+                    <div className="bg-slate-950/60 border border-slate-800 p-3 rounded-xl space-y-2">
+                      <span className="font-bold text-slate-400 uppercase text-[10px] block">📋 Audit History & Action Logs</span>
+                      <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                        {currentDetailTask.auditTrail.map((log) => (
+                          <div key={log.logId} className="text-[10px] border-l-2 border-brand-500 pl-2 space-y-0.5">
+                            <div className="flex justify-between font-semibold text-slate-300">
+                              <span>{log.actorName} — {log.action}</span>
+                              <span className="text-slate-500 font-mono">{new Date(log.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
+                            </div>
+                            {log.details && <p className="text-slate-400 italic">{log.details}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Inline Reply UI */}
                   {showInlineReply && (

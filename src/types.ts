@@ -46,6 +46,21 @@ export interface TransferLog {
   reason?: string;
 }
 
+export interface AuditLog {
+  logId: string;
+  timestamp: string;
+  actorId: string;
+  actorName: string;
+  action: string;
+  details?: string;
+}
+
+export interface ChecklistItem {
+  itemId: string;
+  title: string;
+  completed: boolean;
+}
+
 export interface Task {
   taskId: string;
   taskTitle: string;
@@ -65,6 +80,8 @@ export interface Task {
   updatedAt: string;
   completedAt?: string | null;
   transferHistory?: TransferLog[];
+  auditTrail?: AuditLog[];
+  checklist?: ChecklistItem[];
   createdLocation?: { latitude: number; longitude: number; accuracy?: number; timestamp: string; cityName?: string } | null;
   assigneeOpenLocation?: { latitude: number; longitude: number; accuracy?: number; timestamp: string; cityName?: string } | null;
   lastOpenedLocation?: { latitude: number; longitude: number; accuracy?: number; timestamp: string; userId: string; userName: string; cityName?: string } | null;

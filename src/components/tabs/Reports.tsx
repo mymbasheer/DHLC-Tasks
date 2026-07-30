@@ -49,15 +49,48 @@ export const Reports: React.FC = () => {
           <p className="text-xs text-slate-400">Run real-time filters across all company tasks, departments, and operational history.</p>
         </div>
         
-        <button
-          onClick={() => window.print()}
-          className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl text-xs transition-colors flex items-center space-x-2 shadow-md cursor-pointer"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-          </svg>
-          <span>Print Complete Department Report</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => {
+              if (filteredReportTasks.length === 0) return;
+              const headers = ['Work Order No / Title', 'Department', 'Assignee', 'Status', 'Urgency', 'Due Date', 'Instructions'];
+              const rows = filteredReportTasks.map(t => {
+                const firstComm = t.comments && t.comments.length > 0 ? t.comments[0] : null;
+                const msg = (firstComm?.text || t.taskMessage || '').replace(/"/g, '""');
+                return [
+                  `"${t.taskTitle}"`,
+                  `"${t.assignedDepartmentName || 'General'}"`,
+                  `"${t.assignedToName || 'Department Group'}"`,
+                  `"${t.status}"`,
+                  `"${t.urgency}"`,
+                  `"${t.dueDate ? t.dueDate.split('T')[0] : ''}"`,
+                  `"${msg}"`
+                ].join(',');
+              });
+              const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
+              const encodedUri = encodeURI(csvContent);
+              const link = document.createElement('a');
+              link.setAttribute('href', encodedUri);
+              link.setAttribute('download', `dhlc-work-orders-${new Date().toISOString().split('T')[0]}.csv`);
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }}
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs transition-colors flex items-center space-x-1.5 shadow-md cursor-pointer"
+          >
+            <span>📥 Export CSV / Excel</span>
+          </button>
+
+          <button
+            onClick={() => window.print()}
+            className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl text-xs transition-colors flex items-center space-x-2 shadow-md cursor-pointer"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            <span>Print Complete Department Report</span>
+          </button>
+        </div>
       </div>
 
       {/* Report Filters Card */}

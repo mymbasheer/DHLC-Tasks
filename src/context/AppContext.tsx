@@ -1098,6 +1098,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         createdAt: new Date().toISOString(),
         dateKey: taskForm.dueDate ? taskForm.dueDate.split('T')[0] : new Date().toISOString().split('T')[0],
         updatedAt: new Date().toISOString(),
+        auditTrail: [{
+          logId: 'log_' + Math.random().toString(36).substr(2, 9),
+          timestamp: new Date().toISOString(),
+          actorId: user.uid,
+          actorName: user.displayName || user.name || 'System User',
+          action: 'Created Task',
+          details: `Task created and dispatched to ${assigneeName || assignedDeptName || 'Group'}`
+        }],
+        checklist: taskForm.checklist || [],
         createdLocation: createdLocation,
         reminderAt,
         reminderAlerted: false,

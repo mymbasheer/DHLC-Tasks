@@ -11,6 +11,7 @@ import { CreatedTasks } from './components/tabs/CreatedTasks';
 
 import { Invitations } from './components/tabs/Invitations';
 import { Reports } from './components/tabs/Reports';
+import { MapView } from './components/tabs/MapView';
 import { Performance } from './components/tabs/Performance';
 import { CreateTaskModal } from './components/modals/CreateTaskModal';
 import { TaskDetailsModal } from './components/modals/TaskDetailsModal';
@@ -61,12 +62,12 @@ const AppContent: React.FC = () => {
                   Hello, <span className="font-semibold text-slate-200">{user.displayName || user.name || user.email}</span>!
                 </p>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Your account has been registered in the system. However, your access is currently restricted. An Admin must assign your role and operational rights before you can access the dashboard.
+                  Your account has been registered successfully. An Administrator will review and activate your permissions shortly.
                 </p>
               </div>
               <button
                 onClick={logout}
-                className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-255 rounded-xl text-xs font-semibold transition-all border border-slate-700 cursor-pointer"
+                className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition-colors cursor-pointer"
               >
                 Log Out / Switch Account
               </button>
@@ -80,7 +81,7 @@ const AppContent: React.FC = () => {
               <CompletedTasks />
               <CreatedTasks />
               <Performance />
-
+              <MapView />
               <Invitations />
               <Reports />
             </main>

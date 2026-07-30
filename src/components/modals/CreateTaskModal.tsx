@@ -296,16 +296,114 @@ export const CreateTaskModal: React.FC = () => {
             )}
           </div>
 
+          {/* Preset Task Templates */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">Task Template Presets</label>
+            <select
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === 'field_dispatch') {
+                  setTaskForm({
+                    ...taskForm,
+                    taskType: 'Urgent',
+                    taskMessage: 'Field Service Dispatch: Perform immediate site inspection, complete safety checklist, and take photo verification.',
+                    checklist: [
+                      { itemId: '1', title: 'Conduct initial site safety check', completed: false },
+                      { itemId: '2', title: 'Complete field service work order log', completed: false },
+                      { itemId: '3', title: 'Capture site photos and customer signature', completed: false }
+                    ]
+                  });
+                } else if (val === 'inventory_audit') {
+                  setTaskForm({
+                    ...taskForm,
+                    taskType: 'High',
+                    taskMessage: 'Inventory & Stock Audit: Verify stock balances across all warehouse racks and submit count log.',
+                    checklist: [
+                      { itemId: '1', title: 'Scan rack barcodes and count boxes', completed: false },
+                      { itemId: '2', title: 'Log stock variance report', completed: false }
+                    ]
+                  });
+                } else if (val === 'maintenance') {
+                  setTaskForm({
+                    ...taskForm,
+                    taskType: 'Medium',
+                    taskMessage: 'Scheduled Maintenance: Perform routine equipment check and clean filters.',
+                    checklist: [
+                      { itemId: '1', title: 'Inspect machinery oil & filter levels', completed: false },
+                      { itemId: '2', title: 'Update maintenance log sheet', completed: false }
+                    ]
+                  });
+                }
+              }}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-brand-500 font-semibold"
+            >
+              <option value="">-- Choose Standard Template (Optional) --</option>
+              <option value="field_dispatch">⚡ Standard Field Service Dispatch</option>
+              <option value="inventory_audit">📦 Inventory & Warehouse Audit</option>
+              <option value="maintenance">🔧 Scheduled Equipment Maintenance</option>
+            </select>
+          </div>
+
           {/* Task Message / Description */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Task Message (Optional)</label>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Task Message / Instructions</label>
             <textarea
               value={taskForm.taskMessage || ''}
               onChange={(e) => setTaskForm({ ...taskForm, taskMessage: e.target.value })}
-              placeholder="Enter task instructions or details here..."
+              placeholder="Enter detailed task instructions or work order details here..."
               rows={3}
               className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-brand-500 text-sm resize-none"
             />
+          </div>
+
+          {/* Checklist Item Builder */}
+          <div className="space-y-2 bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-slate-300 uppercase tracking-wider text-[10px]">Work Order Checklist ({taskForm.checklist?.length || 0})</span>
+              <button
+                type="button"
+                onClick={() => {
+                  const currentList = taskForm.checklist || [];
+                  setTaskForm({
+                    ...taskForm,
+                    checklist: [...currentList, { itemId: Date.now().toString(), title: '', completed: false }]
+                  });
+                }}
+                className="text-[10px] bg-brand-600/20 text-brand-400 hover:bg-brand-600/40 px-2 py-0.5 rounded font-bold transition-all"
+              >
+                + Add Sub-Item
+              </button>
+            </div>
+            {taskForm.checklist && taskForm.checklist.length > 0 && (
+              <div className="space-y-1.5 pt-1">
+                {taskForm.checklist.map((item: any, idx: number) => (
+                  <div key={item.itemId || idx} className="flex items-center space-x-2">
+                    <span className="text-[10px] text-slate-500 font-mono">#{idx + 1}</span>
+                    <input
+                      type="text"
+                      placeholder="Checklist step / action..."
+                      value={item.title}
+                      onChange={(e) => {
+                        const updated = [...taskForm.checklist];
+                        updated[idx].title = e.target.value;
+                        setTaskForm({ ...taskForm, checklist: updated });
+                      }}
+                      className="flex-grow bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-brand-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = taskForm.checklist.filter((_: any, i: number) => i !== idx);
+                        setTaskForm({ ...taskForm, checklist: updated });
+                      }}
+                      className="text-rose-500 text-xs px-1 hover:text-rose-400 font-bold"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Reminder Section */}
