@@ -1,0 +1,188 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@import "tailwindcss";
+
+:root {
+  --slate-50:  #090d16;
+  --slate-100: #0f172a;
+  --slate-200: #1e293b;
+  --slate-300: #334155;
+  --slate-400: #475569;
+  --slate-500: #64748b;
+  --slate-600: #94a3b8;
+  --slate-700: #cbd5e1;
+  --slate-800: #e2e8f0;
+  --slate-850: #f1f5f9;
+  --slate-900: #ffffff;
+  --slate-950: #f8fafc;
+  --slate-955: #f8fafc;
+  
+  --bg-gradient: radial-gradient(circle at 10% 20%, rgba(239, 246, 255, 0.6) 0%, rgba(245, 243, 255, 0.5) 90%);
+  --glass-bg: #ffffff;
+  --glass-border: #e2e8f0;
+  --glass-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+.dark {
+  --slate-50:  #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #cbd5e1;
+  --slate-300: #94a3b8;
+  --slate-400: #64748b;
+  --slate-500: #475569;
+  --slate-600: #334155;
+  --slate-700: #1e293b;
+  --slate-800: #0f172a;
+  --slate-850: #090d16;
+  --slate-900: #0b0f19;
+  --slate-950: #040811;
+  --slate-955: #02060e;
+  
+  --bg-gradient: radial-gradient(circle at 10% 20%, rgba(15, 23, 42, 0.95) 0%, rgba(9, 13, 22, 0.98) 90%);
+  --glass-bg: #0f172a;
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+}
+
+@theme {
+  /* ─── Brand: Primary Blue/Indigo ─────────────────────────── */
+  --color-brand-50:  #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-300: #93c5fd;
+  --color-brand-400: #60a5fa;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+
+  /* ─── Slate: Dynamic variables for themes ───────────────── */
+  --color-slate-50:  var(--slate-50);
+  --color-slate-100: var(--slate-100);
+  --color-slate-200: var(--slate-200);
+  --color-slate-300: var(--slate-300);
+  --color-slate-400: var(--slate-400);
+  --color-slate-500: var(--slate-500);
+  --color-slate-600: var(--slate-600);
+  --color-slate-700: var(--slate-700);
+  --color-slate-800: var(--slate-800);
+  --color-slate-850: var(--slate-850);
+  --color-slate-900: var(--slate-900);
+  --color-slate-950: var(--slate-950);
+  --color-slate-955: var(--slate-955);
+
+  /* ─── Secondary/Accent: Violet/Purple ─────────────────────── */
+  --color-sky-300:  #c4b5fd;
+  --color-sky-400:  #a78bfa;
+  --color-sky-500:  #8b5cf6;
+
+  /* ─── Emerald: Muted Green ────────────────────────────────────── */
+  --color-emerald-300: #a7f3d0;
+  --color-emerald-400: #34d399;
+  --color-emerald-500: #10b981;
+  --color-emerald-600: #059669;
+  --color-emerald-950: #064e3b;
+
+  /* ─── Rose/Red stays standard crimson/rose ────────────────────── */
+  --color-rose-400:  #fb7185;
+  --color-rose-500:  #f43f5e;
+  --color-rose-600:  #e11d48;
+  --color-rose-950:  #4c0519;
+
+  /* ─── Fonts ──────────────────────────────────────────────────── */
+  --font-sans: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* ─── Base Body ────────────────────────────────────────────── */
+body {
+  background: var(--slate-955);
+  background-image: var(--bg-gradient);
+  @apply text-slate-400 font-sans antialiased min-h-screen;
+  font-family: 'Inter', sans-serif;
+  transition: background-color 0.3s ease, background-image 0.3s ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Outfit', sans-serif;
+  @apply text-slate-100;
+}
+
+/* ─── Glassmorphism Card ─────────────────────────────────────── */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-hover {
+  @apply transition-all duration-300;
+}
+.glass-hover:hover {
+  border-color: rgba(59, 130, 246, 0.3);
+  background: var(--glass-bg);
+  opacity: 0.95;
+}
+
+/* ─── Touch Targets ─────────────────────────────────────────── */
+.touch-target {
+  @apply min-w-[48px] min-h-[48px] flex items-center justify-center;
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar         { width: 6px; height: 6px; }
+::-webkit-scrollbar-track   { background: transparent; }
+::-webkit-scrollbar-thumb   {
+  background: #cbd5e1;
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ─── Selection highlight ───────────────────────────────────── */
+::selection {
+  background: rgba(59, 130, 246, 0.2);
+  color: #1e3a8a;
+}
+
+/* ─── Focus outlines ────────────────────────────────────────── */
+*:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.6);
+  outline-offset: 2px;
+}
+
+/* ─── Print Media Styles ─────────────────────────────────────── */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  aside, nav, header, button, .print\:hidden {
+    display: none !important;
+  }
+  .print\:block {
+    display: block !important;
+  }
+  .glass {
+    background: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+  th, td {
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+    padding: 6px 10px !important;
+  }
+  th {
+    background-color: #f1f5f9 !important;
+    font-weight: bold !important;
+  }
+}
+
+/* ─── Input / Select / Textarea base ───────────────────────── */
+input, select, textarea {
+  color-scheme: dark light;
+}

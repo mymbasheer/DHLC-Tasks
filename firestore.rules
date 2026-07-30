@@ -1,0 +1,138 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        (getUserData().role == 'Admin' || getUserData().role == 'Owner');
+    }
+
+    match /users/{userId} {
+      // Any authenticated user can read/list (required for User Management tab)
+      allow read, list: if isAuthenticated();
+      
+      // Self-registration: any authenticated user can create their own document
+      allow create: if isAuthenticated() && userId == request.auth.uid;
+      
+      // Admin OR self-update (without modifying role or permissions)
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        (userId == request.auth.uid && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'permissions']))
+      );
+
+      // Only Admin can delete user documents
+      allow delete: if isAdmin();
+    }
+
+    match /invitations/{invitationId} {
+      // Anyone authenticated can read invitations to validate tokens
+      allow get: if isAuthenticated();
+      allow list: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /departments/{departmentId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /tasks/{taskId} {
+      // Admin can read all tasks.
+      // Others can read if the task is assigned to them, created by them, or assigned to their department.
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        resource.data.assignedTo == request.auth.uid || 
+        resource.data.createdBy == request.auth.uid ||
+        (resource.data.assignedDepartmentId != null && resource.data.assignedDepartmentId == getUserData().departmentId)
+      );
+      
+      // Admin or personnel with canCreateTasks permission can create tasks
+      allow create: if isAdmin() || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().permissions.canCreateTasks == true);
+      allow update: if isAuthenticated() && (
+        isAdmin() || 
+        resource.data.assignedTo == request.auth.uid ||
+        resource.data.createdBy == request.auth.uid ||
+        (resource.data.assignedDepartmentId != null && resource.data.assignedDepartmentId == getUserData().departmentId)
+      );
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.createdBy == request.auth.uid);
+    }
+
+    match /collections/{collectionId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        resource.data.collectorId == request.auth.uid
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.collectorId == request.auth.uid ||
+        isAdmin()
+      );
+      allow update: if isAuthenticated() && isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /reconciliation_logs/{logId} {
+      allow read: if isAuthenticated() && isAdmin();
+      allow create: if isAuthenticated() && isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    match /expenses/{expenseId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isAdmin();
+      allow update: if isAuthenticated() && isAdmin();
+      allow delete: if isAuthenticated() && isAdmin();
+    }
+
+    match /vault_transfers/{transferId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    match /collector_routes/{routeId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /settings/{settingId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || (isAuthenticated() && settingId == 'task_counter');
+    }
+
+    match /payment_types/{typeId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /task_types/{typeId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /expense_approvals/{approvalId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+
+    match /performance_records/{recordId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && (isAdmin() || request.resource.data.userId == request.auth.uid);
+    }
+
+    match /broadcasts/{broadcastId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+  }
+}
