@@ -36,21 +36,31 @@ export const Reports: React.FC = () => {
         @media print {
           @page {
             size: landscape;
-            margin: 8mm;
+            margin: 5mm;
           }
-          body, #root {
+          html, body, #root {
             background: white !important;
             color: black !important;
+            height: auto !important;
+            overflow: visible !important;
           }
-          .space-y-6 > * + * {
-            margin-top: 0.5rem !important;
+          .space-y-6 > * + *, .space-y-4 > * + *, .space-y-2 > * + * {
+            margin-top: 0 !important;
           }
           .mb-6 {
-            margin-bottom: 0.5rem !important;
+            margin-bottom: 0.25rem !important;
+          }
+          table {
+            border-collapse: collapse !important;
+            width: 100% !important;
           }
           tr {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
+          }
+          td, th {
+            padding: 4px 6px !important;
+            vertical-align: top !important;
           }
           thead {
             display: table-header-group !important;
@@ -242,14 +252,19 @@ export const Reports: React.FC = () => {
                       <tr key={task.taskId} className="hover:bg-slate-900/30 print:hover:bg-transparent">
                         <td className="p-3 font-semibold text-slate-200 print:text-black print:border print:border-black align-top">
                           {userRole === 'Admin' ? (
-                            <button
-                              onClick={() => openTaskDetails(task)}
-                              className="text-left font-bold text-brand-400 hover:text-brand-300 underline cursor-pointer print:text-black print:no-underline"
-                            >
-                              {task.taskTitle}
-                            </button>
+                            <>
+                              <button
+                                onClick={() => openTaskDetails(task)}
+                                className="text-left font-bold text-brand-400 hover:text-brand-300 underline cursor-pointer print:hidden"
+                              >
+                                {task.taskTitle}
+                              </button>
+                              <span className="hidden print:inline-block font-bold text-black">
+                                {task.taskTitle}
+                              </span>
+                            </>
                           ) : (
-                            <span>{task.taskTitle}</span>
+                            <span className="font-bold text-slate-200 print:text-black">{task.taskTitle}</span>
                           )}
                         </td>
                         <td className="p-3 print:border print:border-black align-top">
