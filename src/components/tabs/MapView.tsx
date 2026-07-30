@@ -5,7 +5,7 @@ export const MapView: React.FC = () => {
   const { currentTab, masterTasks, myTasks, userRole, departmentsList, openTaskDetails } = useApp();
   const [selectedDeptId, setSelectedDeptId] = useState<string>('');
 
-  if (currentTab !== 'map') return null;
+  if (currentTab !== 'map' || userRole !== 'Admin') return null;
 
   const sourceTasks = userRole === 'Admin' ? masterTasks : myTasks;
 
