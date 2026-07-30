@@ -36,7 +36,7 @@ export const Reports: React.FC = () => {
         @media print {
           @page {
             size: landscape;
-            margin: 8mm;
+            margin: 5mm;
           }
           html, body, #root {
             background: white !important;
@@ -72,24 +72,32 @@ export const Reports: React.FC = () => {
             border-collapse: collapse !important;
             width: 100% !important;
             margin: 0 !important;
-            table-layout: auto !important;
+            table-layout: fixed !important;
           }
           tr {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
           }
           td, th {
-            padding: 5px 8px !important;
+            padding: 2px 4px !important;
             vertical-align: top !important;
             color: black !important;
             opacity: 1 !important;
             visibility: visible !important;
-            border: 1px solid black !important;
-            font-size: 11px !important;
-            line-height: 1.3 !important;
+            border: 1px solid #333 !important;
+            font-size: 10px !important;
+            line-height: 1.15 !important;
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
           }
           thead {
             display: table-header-group !important;
+          }
+          thead th {
+            background-color: #f0f0f0 !important;
+            font-weight: bold !important;
+            font-size: 9px !important;
+            text-transform: uppercase !important;
           }
         }
       `}</style>
@@ -257,13 +265,13 @@ export const Reports: React.FC = () => {
               <table className="w-full text-left text-xs text-slate-300 print:text-black print:border-collapse">
                 <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800 print:bg-gray-200 print:text-black print:border-black">
                   <tr>
-                    <th className="p-3 print:border print:border-black">Work Order / Title</th>
-                    <th className="p-3 print:border print:border-black">Status</th>
-                    <th className="p-3 hidden md:table-cell print:table-cell print:border print:border-black">Urgency</th>
-                    <th className="p-3 hidden md:table-cell print:table-cell print:border print:border-black">Due Date</th>
+                    <th className="p-3 print:border print:border-black w-[15%]">Work Order / Title</th>
+                    <th className="p-3 print:border print:border-black w-[10%]">Status</th>
+                    <th className="p-3 hidden md:table-cell print:table-cell print:border print:border-black w-[8%]">Urgency</th>
+                    <th className="p-3 hidden md:table-cell print:table-cell print:border print:border-black w-[12%]">Due Date</th>
                     <th className="p-3 hidden md:table-cell print:hidden">Location</th>
                     {userRole === 'Admin' && <th className="p-3 print:hidden">Action</th>}
-                    <th className="p-3 print:border print:border-black">DESCRIPTION / INSTRUCTIONS:</th>
+                    <th className="p-3 print:border print:border-black w-[55%]">DESCRIPTION / INSTRUCTIONS:</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-900 print:divide-y print:divide-black">
