@@ -36,7 +36,7 @@ export const Reports: React.FC = () => {
         @media print {
           @page {
             size: landscape;
-            margin: 4mm;
+            margin: 0.5in;
           }
           html, body, #root {
             background: white !important;
