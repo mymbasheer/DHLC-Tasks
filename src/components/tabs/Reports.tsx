@@ -31,12 +31,29 @@ export const Reports: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left">
-      {/* Landscape Print Orientation Styling */}
+      {/* Landscape Print Orientation & Compact Page Gap Styling */}
       <style>{`
         @media print {
           @page {
             size: landscape;
-            margin: 10mm;
+            margin: 8mm;
+          }
+          body, #root {
+            background: white !important;
+            color: black !important;
+          }
+          .space-y-6 > * + * {
+            margin-top: 0.5rem !important;
+          }
+          .mb-6 {
+            margin-bottom: 0.5rem !important;
+          }
+          tr {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          thead {
+            display: table-header-group !important;
           }
         }
       `}</style>
