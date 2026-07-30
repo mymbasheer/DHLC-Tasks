@@ -14,7 +14,10 @@ const PersonnelCard: React.FC<PersonnelCardProps> = ({ personnel }) => {
   const [email, setEmail] = useState(personnel.email);
   const [role, setRole] = useState(personnel.role);
   const [mobileNumber, setMobileNumber] = useState(personnel.mobileNumber || '');
-  const [departmentId, setDepartmentId] = useState(personnel.departmentId || '');
+  const [selectedDeptIds, setSelectedDeptIds] = useState<string[]>(() => {
+    if (personnel.departmentIds && personnel.departmentIds.length > 0) return personnel.departmentIds;
+    return personnel.departmentId ? [personnel.departmentId] : [];
+  });
   const [canCreateTasks, setCanCreateTasks] = useState(personnel.permissions?.canCreateTasks || false);
   const [canManageUsers, setCanManageUsers] = useState(personnel.permissions?.canManageUsers || false);
 
@@ -24,11 +27,18 @@ const PersonnelCard: React.FC<PersonnelCardProps> = ({ personnel }) => {
       setEmail(personnel.email);
       setRole(personnel.role);
       setMobileNumber(personnel.mobileNumber || '');
-      setDepartmentId(personnel.departmentId || '');
+      setSelectedDeptIds(personnel.departmentIds && personnel.departmentIds.length > 0 ? personnel.departmentIds : (personnel.departmentId ? [personnel.departmentId] : []));
       setCanCreateTasks(personnel.permissions?.canCreateTasks || false);
       setCanManageUsers(personnel.permissions?.canManageUsers || false);
     }
   }, [personnel, isEditing]);
+
+  const handleDeptToggle = (deptId: string) => {
+    setSelectedDeptIds(prev => 
+      prev.includes(deptId) ? prev.filter(id => id !== deptId) : [...prev, deptId]
+    );
+  };
+
   const handleRoleChange = (newRole: string) => {
     setRole(newRole);
     if (newRole === 'Admin') {
@@ -48,18 +58,35 @@ const PersonnelCard: React.FC<PersonnelCardProps> = ({ personnel }) => {
     setEmail(personnel.email);
     setRole(personnel.role);
     setMobileNumber(personnel.mobileNumber || '');
-    setDepartmentId(personnel.departmentId || '');
+    setSelectedDeptIds(personnel.departmentIds && personnel.departmentIds.length > 0 ? personnel.departmentIds : (personnel.departmentId ? [personnel.departmentId] : []));
     setCanCreateTasks(personnel.permissions?.canCreateTasks || false);
     setCanManageUsers(personnel.permissions?.canManageUsers || false);
     setIsEditing(false);
   };
 
   const handleSave = () => {
-    const deptObj = departmentsList.find(d => d.departmentId === departmentId);
-    const deptName = deptObj ? deptObj.departmentName : '';
-    updateUserRights(personnel.uid, name, email, role, mobileNumber, departmentId, deptName);
+    const matchedDepts = departmentsList.filter(d => selectedDeptIds.includes(d.departmentId));
+    const primaryDeptId = selectedDeptIds[0] || '';
+    const primaryDeptName = matchedDepts[0]?.departmentName || '';
+    const deptNames = matchedDepts.map(d => d.departmentName);
+
+    updateUserRights(
+      personnel.uid, 
+      name, 
+      email, 
+      role, 
+      mobileNumber, 
+      primaryDeptId, 
+      primaryDeptName, 
+      selectedDeptIds, 
+      deptNames
+    );
     setIsEditing(false);
   };
+
+  const displayDeptNames: string[] = personnel.departmentNames && personnel.departmentNames.length > 0
+    ? personnel.departmentNames
+    : (personnel.departmentName ? [personnel.departmentName] : []);
 
   return (
     <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm hover:shadow-md transition-shadow relative">
@@ -98,29 +125,38 @@ const PersonnelCard: React.FC<PersonnelCardProps> = ({ personnel }) => {
               <option value="Admin">Admin</option>
               <option value="User">Personnel (User)</option>
             </select>
-            <label className="block text-[10px] text-slate-500 uppercase font-semibold">Assign Department</label>
-            <select
-              value={departmentId}
-              onChange={(e) => setDepartmentId(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-slate-300 focus:outline-none font-semibold"
-            >
-              <option value="">-- No Department --</option>
+
+            <label className="block text-[10px] text-slate-500 uppercase font-bold text-emerald-400">Assign Departments (Multiple Allowed)</label>
+            <div className="bg-slate-950 border border-slate-800 rounded-xl p-2.5 space-y-1.5 max-h-36 overflow-y-auto">
               {departmentsList.map((dept) => (
-                <option key={dept.departmentId} value={dept.departmentId}>
-                  🏢 {dept.departmentName}
-                </option>
+                <label key={dept.departmentId} className="flex items-center space-x-2 text-xs text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedDeptIds.includes(dept.departmentId)}
+                    onChange={() => handleDeptToggle(dept.departmentId)}
+                    className="rounded border-slate-800 bg-slate-900 text-emerald-500 focus:ring-emerald-500 h-3.5 w-3.5"
+                  />
+                  <span>🏢 {dept.departmentName}</span>
+                </label>
               ))}
-            </select>
+              {departmentsList.length === 0 && (
+                <span className="text-[10px] text-slate-500 italic">No departments created yet.</span>
+              )}
+            </div>
           </div>
         ) : (
           <div className="flex justify-between items-start">
             <div>
               <h4 className="font-bold text-slate-200 text-sm">{name}</h4>
               <p className="text-[11px] text-slate-400 mt-0.5">{email}</p>
-              {personnel.departmentName && (
-                <p className="text-[11px] text-emerald-400 mt-1 font-semibold flex items-center gap-1">
-                  🏢 <span className="bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">{personnel.departmentName}</span>
-                </p>
+              {displayDeptNames.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {displayDeptNames.map((dName, idx) => (
+                    <span key={idx} className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded font-bold">
+                      🏢 {dName}
+                    </span>
+                  ))}
+                </div>
               )}
               {personnel.mobileNumber && (
                 <p className="text-[11px] text-brand-400 mt-1 flex items-center gap-1 font-medium">

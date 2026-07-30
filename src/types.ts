@@ -21,6 +21,8 @@ export interface User {
   mobileNumber?: string;
   departmentId?: string;
   departmentName?: string;
+  departmentIds?: string[];
+  departmentNames?: string[];
 }
 
 export interface Comment {

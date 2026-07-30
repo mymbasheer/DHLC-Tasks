@@ -28,11 +28,13 @@ export const CreatedTasks: React.FC = () => {
     deleteTask,
     user,
     setShowBroadcastModal,
-    userRole
+    userRole,
+    departmentsList
   } = useApp();
 
   const [activeStatsFilter, setActiveStatsFilter] = useState<'Active' | 'All' | 'Pending' | 'In_Progress' | 'Completed'>('Active');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>('');
 
   if (currentTab !== 'created_tasks') return null;
 
@@ -41,6 +43,13 @@ export const CreatedTasks: React.FC = () => {
 
   const displayedTasks = myCreatedTasks
     .filter(t => {
+      if (selectedDeptFilter) {
+        if (selectedDeptFilter === 'unassigned') {
+          if (t.assignedDepartmentId) return false;
+        } else {
+          if (t.assignedDepartmentId !== selectedDeptFilter) return false;
+        }
+      }
       if (activeStatsFilter === 'Active') return t.status !== 'Completed';
       if (activeStatsFilter === 'All') return true;
       return t.status === activeStatsFilter;
@@ -59,6 +68,22 @@ export const CreatedTasks: React.FC = () => {
       const bOrder = TASK_TYPE_ORDER[b.taskType] ?? 3;
       return aOrder - bOrder;
     });
+
+  // Group displayed created tasks by Department
+  const groupedTasksByDepartment = (() => {
+    const map = new Map<string, { deptName: string; tasks: any[] }>();
+    departmentsList.forEach(d => {
+      map.set(d.departmentId, { deptName: d.departmentName, tasks: [] });
+    });
+    map.set('general', { deptName: 'General / Direct Tasks', tasks: [] });
+
+    displayedTasks.forEach(t => {
+      const dId = t.assignedDepartmentId && map.has(t.assignedDepartmentId) ? t.assignedDepartmentId : 'general';
+      map.get(dId)!.tasks.push(t);
+    });
+
+    return Array.from(map.values()).filter(g => g.tasks.length > 0);
+  })();
 
   const renderTaskCard = (task: any) => {
     if (!task) return null;
@@ -135,30 +160,56 @@ export const CreatedTasks: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* Official Print Header */}
+      <div className="hidden print:block mb-6 border-b-2 border-black pb-4 text-black text-left">
+        <h1 className="text-2xl font-bold uppercase tracking-wider">DHLC Tasks — Created Tasks Desk Master Report</h1>
+        <p className="text-xs mt-1">Creator / Admin: <strong>{user?.name || user?.email}</strong> | Generated: {new Date().toLocaleString()} | Total Tasks: {displayedTasks.length}</p>
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 print:hidden">
         <div className="text-left">
           <h2 className="text-xl font-bold font-sans">Created Tasks Desk</h2>
           <p className="text-xs text-slate-400">Manage and update tasks created by you</p>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            value={selectedDeptFilter}
+            onChange={(e) => setSelectedDeptFilter(e.target.value)}
+            className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-semibold"
+          >
+            <option value="">All Departments</option>
+            {departmentsList.map(d => (
+              <option key={d.departmentId} value={d.departmentId}>🏢 {d.departmentName}</option>
+            ))}
+            <option value="unassigned">General / Unassigned</option>
+          </select>
+
           <input
             type="text"
             placeholder="Search created tasks..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-sm text-slate-300 focus:outline-none focus:border-brand-500 w-full sm:w-64"
+            className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-300 focus:outline-none focus:border-brand-500 w-full sm:w-56"
           />
+
+          <button
+            onClick={() => window.print()}
+            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs transition-all cursor-pointer shadow-md flex items-center space-x-1.5"
+          >
+            <span>🖨️ Print Created Tasks</span>
+          </button>
+
           <button
             onClick={() => setShowCreateTaskModal(true)}
-            className="h-10 px-4 flex items-center justify-center bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl text-sm transition-all duration-200 shadow-lg shadow-brand-500/10 cursor-pointer whitespace-nowrap"
+            className="h-9 px-4 flex items-center justify-center bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl text-xs transition-all duration-200 shadow-lg shadow-brand-500/10 cursor-pointer whitespace-nowrap"
           >
             + Create Task
           </button>
           {userRole === 'Admin' && (
             <button
               onClick={() => setShowBroadcastModal(true)}
-              className="h-10 px-4 flex items-center justify-center bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded-xl text-xs sm:text-sm transition-all duration-200 shadow-lg shadow-rose-500/10 cursor-pointer whitespace-nowrap"
+              className="h-9 px-4 flex items-center justify-center bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded-xl text-xs transition-all duration-200 shadow-lg shadow-rose-500/10 cursor-pointer whitespace-nowrap"
             >
               📢 Broadcast Alert
             </button>
@@ -166,55 +217,104 @@ export const CreatedTasks: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-2 md:gap-4 text-left">
+      {/* Stats Filter Cards */}
+      <div className="grid grid-cols-4 gap-2 md:gap-4 text-left print:hidden">
         <div
-          onClick={() => setActiveStatsFilter('All')}
-          className={`glass p-4 rounded-xl cursor-pointer hover:border-brand-500/50 transition-colors ${
-            activeStatsFilter === 'All' ? 'border-brand-500 bg-brand-500/5' : ''
+          onClick={() => setActiveStatsFilter('Active')}
+          className={`p-3 sm:p-4 rounded-xl border transition-all cursor-pointer ${
+            activeStatsFilter === 'Active' ? 'bg-brand-600/20 border-brand-500 shadow-lg' : 'glass border-slate-800 hover:border-slate-700'
           }`}
         >
-          <span className="text-[10px] text-slate-400 uppercase font-semibold">All Created</span>
-          <h3 className="text-2xl font-bold text-slate-100 mt-1">
-            {myCreatedTasks.length}
-          </h3>
+          <span className="text-[10px] sm:text-xs text-slate-400 font-medium block">Active Tasks</span>
+          <span className="text-lg sm:text-2xl font-bold text-slate-100 mt-1 block">
+            {myCreatedTasks.filter(t => t.status !== 'Completed').length}
+          </span>
         </div>
+
         <div
-          onClick={() => setActiveStatsFilter(activeStatsFilter === 'Pending' ? 'Active' : 'Pending')}
-          className={`glass p-4 rounded-xl cursor-pointer hover:border-brand-500/50 transition-colors ${
-            activeStatsFilter === 'Pending' ? 'border-brand-500 bg-brand-500/5' : ''
+          onClick={() => setActiveStatsFilter('Pending')}
+          className={`p-3 sm:p-4 rounded-xl border transition-all cursor-pointer ${
+            activeStatsFilter === 'Pending' ? 'bg-slate-800 border-slate-600 shadow-lg' : 'glass border-slate-800 hover:border-slate-700'
           }`}
         >
-          <span className="text-[10px] text-slate-400 uppercase font-semibold">Not Started</span>
-          <h3 className="text-2xl font-bold text-slate-100 mt-1">
+          <span className="text-[10px] sm:text-xs text-slate-400 font-medium block">Pending</span>
+          <span className="text-lg sm:text-2xl font-bold text-slate-300 mt-1 block">
             {myCreatedTasks.filter(t => t.status === 'Pending').length}
-          </h3>
+          </span>
         </div>
+
         <div
-          onClick={() => setActiveStatsFilter(activeStatsFilter === 'In_Progress' ? 'Active' : 'In_Progress')}
-          className={`glass p-4 rounded-xl cursor-pointer hover:border-brand-500/50 transition-colors ${
-            activeStatsFilter === 'In_Progress' ? 'border-brand-500 bg-brand-500/5' : ''
+          onClick={() => setActiveStatsFilter('In_Progress')}
+          className={`p-3 sm:p-4 rounded-xl border transition-all cursor-pointer ${
+            activeStatsFilter === 'In_Progress' ? 'bg-blue-600/20 border-blue-500 shadow-lg' : 'glass border-slate-800 hover:border-slate-700'
           }`}
         >
-          <span className="text-[10px] text-slate-400 uppercase font-semibold">In Progress</span>
-          <h3 className="text-2xl font-bold text-slate-100 mt-1">
+          <span className="text-[10px] sm:text-xs text-blue-400 font-medium block">In Progress</span>
+          <span className="text-lg sm:text-2xl font-bold text-blue-300 mt-1 block">
             {myCreatedTasks.filter(t => t.status === 'In_Progress').length}
-          </h3>
+          </span>
         </div>
-        <div className={`glass p-4 rounded-xl transition-colors border-slate-800 opacity-80`}>
-          <span className="text-[10px] text-slate-400 uppercase font-semibold">Completed</span>
-          <h3 className="text-2xl font-bold text-emerald-500 mt-1">
+
+        <div
+          onClick={() => setActiveStatsFilter('Completed')}
+          className={`p-3 sm:p-4 rounded-xl border transition-all cursor-pointer ${
+            activeStatsFilter === 'Completed' ? 'bg-emerald-600/20 border-emerald-500 shadow-lg' : 'glass border-slate-800 hover:border-slate-700'
+          }`}
+        >
+          <span className="text-[10px] sm:text-xs text-emerald-400 font-medium block">Completed</span>
+          <span className="text-lg sm:text-2xl font-bold text-emerald-300 mt-1 block">
             {myCreatedTasks.filter(t => t.status === 'Completed').length}
-          </h3>
+          </span>
         </div>
       </div>
 
-      {displayedTasks.length === 0 ? (
-        <div className="glass rounded-xl p-8 text-center text-slate-500">
-          No active tasks matching your criteria.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {displayedTasks.map(t => renderTaskCard(t))}
+      {/* Screen Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 print:hidden">
+        {displayedTasks.map(renderTaskCard)}
+      </div>
+
+      {/* Print View: Grouped by Department */}
+      <div className="hidden print:block space-y-6 text-left">
+        {groupedTasksByDepartment.map(group => (
+          <div key={group.deptName} className="space-y-2">
+            <h3 className="text-base font-bold uppercase tracking-wider text-black border-b-2 border-black pb-1">
+              🏢 Department: {group.deptName} ({group.tasks.length} Tasks)
+            </h3>
+            <table className="w-full text-left text-xs border-collapse border border-black text-black">
+              <thead>
+                <tr className="bg-gray-200 border-b border-black">
+                  <th className="p-2 border border-black">Work Order Title</th>
+                  <th className="p-2 border border-black">Assigned To</th>
+                  <th className="p-2 border border-black">Urgency</th>
+                  <th className="p-2 border border-black">Status</th>
+                  <th className="p-2 border border-black">Due Date</th>
+                  <th className="p-2 border border-black">Instructions / Message</th>
+                </tr>
+              </thead>
+              <tbody>
+                {group.tasks.map((t: any) => {
+                  const firstComm = t.comments && t.comments.length > 0 ? t.comments[0] : null;
+                  const msg = firstComm?.text || t.taskMessage || 'No text description';
+                  return (
+                    <tr key={t.taskId} className="border-b border-black">
+                      <td className="p-2 border border-black font-bold">{t.taskTitle}</td>
+                      <td className="p-2 border border-black">{t.assignedToName || 'Department Group'}</td>
+                      <td className="p-2 border border-black">{t.urgency}</td>
+                      <td className="p-2 border border-black font-semibold">{t.status}</td>
+                      <td className="p-2 border border-black font-mono">{t.dueDate ? new Date(t.dueDate).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'None'}</td>
+                      <td className="p-2 border border-black whitespace-pre-wrap">{msg}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ))}
+      </div>
+
+      {displayedTasks.length === 0 && (
+        <div className="p-12 text-center text-slate-500 text-xs bg-slate-900/30 rounded-2xl border border-slate-800 border-dashed space-y-2 print:hidden">
+          <p className="text-base font-semibold text-slate-400">No tasks created under this status filter.</p>
         </div>
       )}
 

@@ -48,12 +48,15 @@ service cloud.firestore {
 
     match /tasks/{taskId} {
       // Admin can read all tasks.
-      // Others can read if the task is assigned to them, created by them, or assigned to their department.
+      // Others can read if the task is assigned to them, created by them, or assigned to one of their departments.
       allow read: if isAuthenticated() && (
         isAdmin() || 
         resource.data.assignedTo == request.auth.uid || 
         resource.data.createdBy == request.auth.uid ||
-        (resource.data.assignedDepartmentId != null && resource.data.assignedDepartmentId == getUserData().departmentId)
+        (resource.data.assignedDepartmentId != null && (
+          resource.data.assignedDepartmentId == getUserData().departmentId ||
+          (getUserData().departmentIds != null && resource.data.assignedDepartmentId in getUserData().departmentIds)
+        ))
       );
       
       // Admin or personnel with canCreateTasks permission can create tasks
@@ -62,7 +65,10 @@ service cloud.firestore {
         isAdmin() || 
         resource.data.assignedTo == request.auth.uid ||
         resource.data.createdBy == request.auth.uid ||
-        (resource.data.assignedDepartmentId != null && resource.data.assignedDepartmentId == getUserData().departmentId)
+        (resource.data.assignedDepartmentId != null && (
+          resource.data.assignedDepartmentId == getUserData().departmentId ||
+          (getUserData().departmentIds != null && resource.data.assignedDepartmentId in getUserData().departmentIds)
+        ))
       );
       allow delete: if isAdmin() || (isAuthenticated() && resource.data.createdBy == request.auth.uid);
     }

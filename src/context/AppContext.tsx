@@ -160,7 +160,7 @@ export interface AppContextType {
   hasUnreadComments: (task: Task) => boolean;
   addCustomTaskType: (typeName?: string) => Promise<void>;
   removeCustomTaskType: (id: string) => Promise<void>;
-  updateUserRights: (uid: string, name: string, email: string, role: string, mobileNumber?: string, departmentId?: string, departmentName?: string) => Promise<void>;
+  updateUserRights: (uid: string, name: string, email: string, role: string, mobileNumber?: string, departmentId?: string, departmentName?: string, departmentIds?: string[], departmentNames?: string[]) => Promise<void>;
   toggleUserStatus: (uid: string, status: 'Active' | 'Suspended') => Promise<void>;
   startEditTask: () => void;
   cancelEditTask: () => void;
@@ -555,21 +555,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setDepartmentsList(depts);
     }));
 
-    // 1. My Tasks (assigned to user OR user's department)
-    const userDepartmentId = user?.departmentId;
+    // 1. My Tasks (assigned to user OR any of user's departments)
+    const userDeptIds: string[] = user?.departmentIds && user.departmentIds.length > 0
+      ? user.departmentIds
+      : (user?.departmentId ? [user.departmentId] : []);
+
     let myTasksQuery = query(collection(db, 'tasks'), where('assignedTo', '==', activeUid));
     unsubs.push(onSnapshot(myTasksQuery, (snap) => {
       let directTasks = snap.docs.map(doc => ({ ...doc.data() as Task, taskId: doc.id }));
       
-      // If user is in a department, fetch department tasks as well
-      if (userDepartmentId) {
-        getDocs(query(collection(db, 'tasks'), where('assignedDepartmentId', '==', userDepartmentId))).then((deptSnap) => {
-          const deptTasks = deptSnap.docs.map(doc => ({ ...doc.data() as Task, taskId: doc.id }));
+      // If user has assigned department(s), fetch department tasks as well
+      if (userDeptIds.length > 0) {
+        const fetchPromises = userDeptIds.map(dId => 
+          getDocs(query(collection(db, 'tasks'), where('assignedDepartmentId', '==', dId)))
+        );
+        Promise.all(fetchPromises).then((snaps) => {
           const taskMap = new Map<string, Task>();
           directTasks.forEach(t => taskMap.set(t.taskId, t));
-          deptTasks.forEach(t => taskMap.set(t.taskId, t));
-          const mergedTasks = Array.from(taskMap.values());
-          setMyTasks(mergedTasks);
+          snaps.forEach(deptSnap => {
+            deptSnap.docs.forEach(doc => {
+              const t = { ...doc.data() as Task, taskId: doc.id };
+              taskMap.set(t.taskId, t);
+            });
+          });
+          setMyTasks(Array.from(taskMap.values()));
         }).catch(err => {
           console.error("Dept tasks fetch error:", err);
           setMyTasks(directTasks);
@@ -1482,7 +1491,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const updateUserRights = async (userUid: string, name: string, email: string, role: string, mobileNumber?: string, departmentId?: string, departmentName?: string) => {
+  const updateUserRights = async (
+    userUid: string, 
+    name: string, 
+    email: string, 
+    role: string, 
+    mobileNumber?: string, 
+    departmentId?: string, 
+    departmentName?: string,
+    departmentIds?: string[],
+    departmentNames?: string[]
+  ) => {
     try {
       const userRef = doc(db, 'users', userUid);
       let finalPermissions = {
@@ -1508,6 +1527,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         mobileNumber: mobileNumber || '',
         departmentId: departmentId || '',
         departmentName: departmentName || '',
+        departmentIds: departmentIds || [],
+        departmentNames: departmentNames || [],
         updatedAt: new Date().toISOString()
       }, { merge: true });
       showToast('User rights updated successfully', 'success');

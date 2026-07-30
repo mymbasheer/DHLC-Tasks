@@ -36,10 +36,12 @@ export const MyTasks: React.FC = () => {
     openTaskDetails,
     cycleStatus,
     showToast,
-    assignableUsers
+    assignableUsers,
+    departmentsList
   } = useApp();
 
   const [activeStatsFilter, setActiveStatsFilter] = useState<'Active' | 'All' | 'Pending' | 'In_Progress' | 'Completed'>('Active');
+  const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>('');
 
   if (currentTab !== 'tasks') return null;
 
@@ -48,6 +50,13 @@ export const MyTasks: React.FC = () => {
   // Filter by status, then sort by task type priority
   const displayedTasks = filteredMyTasks
     .filter(t => {
+      if (selectedDeptFilter) {
+        if (selectedDeptFilter === 'unassigned') {
+          if (t.assignedDepartmentId) return false;
+        } else {
+          if (t.assignedDepartmentId !== selectedDeptFilter) return false;
+        }
+      }
       if (activeStatsFilter === 'Active') return t.status !== 'Completed';
       if (activeStatsFilter === 'All') return true;
       return t.status === activeStatsFilter;
@@ -57,6 +66,24 @@ export const MyTasks: React.FC = () => {
       const bOrder = TASK_TYPE_ORDER[b.taskType] ?? 3;
       return aOrder - bOrder;
     });
+
+  // Group displayed tasks by Department for organized listing/printing
+  const groupedTasksByDepartment = (() => {
+    const map = new Map<string, { deptName: string; tasks: any[] }>();
+    
+    // Initialize with departments
+    departmentsList.forEach(d => {
+      map.set(d.departmentId, { deptName: d.departmentName, tasks: [] });
+    });
+    map.set('general', { deptName: 'General / Direct Tasks', tasks: [] });
+
+    displayedTasks.forEach(t => {
+      const dId = t.assignedDepartmentId && map.has(t.assignedDepartmentId) ? t.assignedDepartmentId : 'general';
+      map.get(dId)!.tasks.push(t);
+    });
+
+    return Array.from(map.values()).filter(g => g.tasks.length > 0);
+  })();
 
   const handleReassign = async (task: any, newAssigneeId: string) => {
     if (!newAssigneeId) return;
@@ -269,14 +296,21 @@ export const MyTasks: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Official Print Header (Shown only when printing) */}
+      <div className="hidden print:block mb-6 border-b-2 border-black pb-4 text-black text-left">
+        <h1 className="text-2xl font-bold uppercase tracking-wider">DHLC Tasks — My Tasks Board Report</h1>
+        <p className="text-xs mt-1">Personnel / User: <strong>{user?.name || user?.email}</strong> | Date: {todayDateKey} | Generated: {new Date().toLocaleString()}</p>
+        <p className="text-xs mt-0.5">Filter: <strong>{activeStatsFilter} Tasks</strong> | Total Tasks: {displayedTasks.length}</p>
+      </div>
+
       {/* Header bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 print:hidden">
         <div className="text-left">
           <h2 className="text-xl font-bold font-sans">My Tasks Board</h2>
           <p className="text-xs text-slate-400">View tasks and work orders assigned to you or your department</p>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center space-x-2 bg-slate-900 border border-slate-800 rounded-xl p-1 text-xs">
             <span className="text-slate-400 px-2 font-medium">Date:</span>
             <input
@@ -286,6 +320,13 @@ export const MyTasks: React.FC = () => {
               className="bg-transparent text-slate-200 font-semibold focus:outline-none px-2 py-1 font-mono"
             />
           </div>
+
+          <button
+            onClick={() => window.print()}
+            className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs transition-all cursor-pointer shadow-md flex items-center space-x-1.5"
+          >
+            <span>🖨️ Print Tasks Board</span>
+          </button>
 
           {canCreate && (
             <button
@@ -307,67 +348,124 @@ export const MyTasks: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats Filter Tabs */}
-      <div className="flex items-center space-x-2 overflow-x-auto pb-2 border-b border-slate-800/60 text-xs">
-        <button
-          onClick={() => setActiveStatsFilter('Active')}
-          className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap ${
-            activeStatsFilter === 'Active'
-              ? 'bg-brand-600 text-white shadow-sm'
-              : 'bg-slate-900 text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          Active Tasks ({filteredMyTasks.filter(t => t.status !== 'Completed').length})
-        </button>
-        <button
-          onClick={() => setActiveStatsFilter('Pending')}
-          className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap ${
-            activeStatsFilter === 'Pending'
-              ? 'bg-slate-800 text-slate-200 shadow-sm'
-              : 'bg-slate-900 text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          Pending ({filteredMyTasks.filter(t => t.status === 'Pending').length})
-        </button>
-        <button
-          onClick={() => setActiveStatsFilter('In_Progress')}
-          className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap ${
-            activeStatsFilter === 'In_Progress'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-slate-900 text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          In Progress ({filteredMyTasks.filter(t => t.status === 'In_Progress').length})
-        </button>
-        <button
-          onClick={() => setActiveStatsFilter('Completed')}
-          className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap ${
-            activeStatsFilter === 'Completed'
-              ? 'bg-emerald-600 text-white shadow-sm'
-              : 'bg-slate-900 text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          Completed ({filteredMyTasks.filter(t => t.status === 'Completed').length})
-        </button>
-        <button
-          onClick={() => setActiveStatsFilter('All')}
-          className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap ${
-            activeStatsFilter === 'All'
-              ? 'bg-slate-700 text-white shadow-sm'
-              : 'bg-slate-900 text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          All Tasks ({filteredMyTasks.length})
-        </button>
+      {/* Stats & Department Filter Tabs */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-800/60 text-xs print:hidden">
+        <div className="flex items-center space-x-2 overflow-x-auto">
+          <button
+            onClick={() => setActiveStatsFilter('Active')}
+            className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap ${
+              activeStatsFilter === 'Active'
+                ? 'bg-brand-600 text-white shadow-sm'
+                : 'bg-slate-900 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Active Tasks ({filteredMyTasks.filter(t => t.status !== 'Completed').length})
+          </button>
+          <button
+            onClick={() => setActiveStatsFilter('Pending')}
+            className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap ${
+              activeStatsFilter === 'Pending'
+                ? 'bg-slate-800 text-slate-200 shadow-sm'
+                : 'bg-slate-900 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Pending ({filteredMyTasks.filter(t => t.status === 'Pending').length})
+          </button>
+          <button
+            onClick={() => setActiveStatsFilter('In_Progress')}
+            className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap ${
+              activeStatsFilter === 'In_Progress'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-slate-900 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            In Progress ({filteredMyTasks.filter(t => t.status === 'In_Progress').length})
+          </button>
+          <button
+            onClick={() => setActiveStatsFilter('Completed')}
+            className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap ${
+              activeStatsFilter === 'Completed'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'bg-slate-900 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Completed ({filteredMyTasks.filter(t => t.status === 'Completed').length})
+          </button>
+          <button
+            onClick={() => setActiveStatsFilter('All')}
+            className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap ${
+              activeStatsFilter === 'All'
+                ? 'bg-slate-700 text-white shadow-sm'
+                : 'bg-slate-900 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            All Tasks ({filteredMyTasks.length})
+          </button>
+        </div>
+
+        {/* Department Filter Selector */}
+        <div className="flex items-center space-x-2">
+          <span className="text-slate-400 font-medium text-[11px]">Department:</span>
+          <select
+            value={selectedDeptFilter}
+            onChange={(e) => setSelectedDeptFilter(e.target.value)}
+            className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-200 text-xs focus:outline-none focus:border-brand-500 font-semibold"
+          >
+            <option value="">All Departments</option>
+            {departmentsList.map(d => (
+              <option key={d.departmentId} value={d.departmentId}>🏢 {d.departmentName}</option>
+            ))}
+            <option value="unassigned">General / Unassigned</option>
+          </select>
+        </div>
       </div>
 
-      {/* Task Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {/* Screen Cards View (Hidden when printing) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 print:hidden">
         {displayedTasks.map(renderTaskCard)}
       </div>
 
+      {/* Print View: Organized by Departments (Shown ONLY when printing) */}
+      <div className="hidden print:block space-y-6 text-left">
+        {groupedTasksByDepartment.map(group => (
+          <div key={group.deptName} className="space-y-2">
+            <h3 className="text-base font-bold uppercase tracking-wider text-black border-b-2 border-black pb-1">
+              🏢 Department: {group.deptName} ({group.tasks.length} Tasks)
+            </h3>
+            <table className="w-full text-left text-xs border-collapse border border-black text-black">
+              <thead>
+                <tr className="bg-gray-200 border-b border-black">
+                  <th className="p-2 border border-black">Work Order No / Title</th>
+                  <th className="p-2 border border-black">Assignee</th>
+                  <th className="p-2 border border-black">Urgency</th>
+                  <th className="p-2 border border-black">Status</th>
+                  <th className="p-2 border border-black">Due Date</th>
+                  <th className="p-2 border border-black">Instructions / Message</th>
+                </tr>
+              </thead>
+              <tbody>
+                {group.tasks.map(t => {
+                  const firstComm = t.comments && t.comments.length > 0 ? t.comments[0] : null;
+                  const msg = firstComm?.text || t.taskMessage || 'No text description';
+                  return (
+                    <tr key={t.taskId} className="border-b border-black">
+                      <td className="p-2 border border-black font-bold">{t.taskTitle}</td>
+                      <td className="p-2 border border-black">{t.assignedToName || 'Department Group'}</td>
+                      <td className="p-2 border border-black">{t.urgency}</td>
+                      <td className="p-2 border border-black font-semibold">{t.status}</td>
+                      <td className="p-2 border border-black font-mono">{t.dueDate ? new Date(t.dueDate).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'None'}</td>
+                      <td className="p-2 border border-black whitespace-pre-wrap">{msg}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ))}
+      </div>
+
       {displayedTasks.length === 0 && (
-        <div className="p-12 text-center text-slate-500 text-xs bg-slate-900/30 rounded-2xl border border-slate-800 border-dashed space-y-2">
+        <div className="p-12 text-center text-slate-500 text-xs bg-slate-900/30 rounded-2xl border border-slate-800 border-dashed space-y-2 print:hidden">
           <p className="text-base font-semibold text-slate-400">No tasks found for this selection.</p>
           <p className="text-xs text-slate-500">Change the date or status filter above to view other tasks.</p>
         </div>
