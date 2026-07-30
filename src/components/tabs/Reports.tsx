@@ -61,6 +61,9 @@ export const Reports: React.FC = () => {
           td, th {
             padding: 4px 6px !important;
             vertical-align: top !important;
+            color: black !important;
+            opacity: 1 !important;
+            visibility: visible !important;
           }
           thead {
             display: table-header-group !important;
@@ -251,21 +254,9 @@ export const Reports: React.FC = () => {
                     return (
                       <tr key={task.taskId} className="hover:bg-slate-900/30 print:hover:bg-transparent">
                         <td className="p-3 font-semibold text-slate-200 print:text-black print:border print:border-black align-top">
-                          {userRole === 'Admin' ? (
-                            <>
-                              <button
-                                onClick={() => openTaskDetails(task)}
-                                className="text-left font-bold text-brand-400 hover:text-brand-300 underline cursor-pointer print:hidden"
-                              >
-                                {task.taskTitle}
-                              </button>
-                              <span className="hidden print:inline-block font-bold text-black">
-                                {task.taskTitle}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="font-bold text-slate-200 print:text-black">{task.taskTitle}</span>
-                          )}
+                          <div className="font-bold text-slate-100 print:text-black print:font-bold print:block">
+                            {task.taskTitle || (task as any).workOrderNo || (task as any).title || `WO-${task.taskId.substring(0, 6)}`}
+                          </div>
                         </td>
                         <td className="p-3 print:border print:border-black align-top">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${taskStatusClass(task.status)} print:border-black print:text-black print:bg-transparent`}>
