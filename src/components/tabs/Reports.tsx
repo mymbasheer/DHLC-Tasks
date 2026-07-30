@@ -172,65 +172,109 @@ export const Reports: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-900 print:divide-y print:divide-black">
-                  {filteredReportTasks.map((task) => (
-                    <tr key={task.taskId} className="hover:bg-slate-900/30 print:hover:bg-transparent">
-                      <td className="p-3 font-semibold text-slate-200 print:text-black print:border print:border-black">
-                        {userRole === 'Admin' ? (
-                          <button
-                            onClick={() => openTaskDetails(task)}
-                            className="text-left font-bold text-brand-400 hover:text-brand-300 underline cursor-pointer print:text-black print:no-underline"
-                          >
-                            {task.taskTitle}
-                          </button>
-                        ) : (
-                          <span>{task.taskTitle}</span>
-                        )}
-                      </td>
-                      <td className="p-3 font-semibold text-emerald-400 print:text-black print:border print:border-black">
-                        {task.assignedDepartmentName ? `🏢 ${task.assignedDepartmentName}` : '—'}
-                      </td>
-                      <td className="p-3 text-slate-400 print:text-black print:border print:border-black">
-                        {task.assignedToName || 'Department Group'}
-                      </td>
-                      <td className="p-3 print:border print:border-black">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${taskStatusClass(task.status)} print:border-black print:text-black print:bg-transparent`}>
-                           {taskStatusName(task.status)}
-                        </span>
-                      </td>
-                      <td className="p-3 hidden md:table-cell print:table-cell print:border print:border-black">{task.urgency}</td>
-                      <td className="p-3 text-slate-455 font-mono hidden md:table-cell print:table-cell print:border print:border-black">
-                        {task.dueDate ? new Date(task.dueDate).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'None'}
-                      </td>
-                      <td className="p-3 hidden md:table-cell print:hidden">
-                        {task.createdLocation ? (
-                          <a
-                            href={`https://www.google.com/maps/search/?api=1&query=${task.createdLocation.latitude},${task.createdLocation.longitude}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-brand-400 hover:text-brand-300 font-semibold underline flex items-center gap-1"
-                          >
-                            📍 {task.createdLocation.cityName || 'View Map'}
-                          </a>
-                        ) : (
-                          <span className="text-slate-500">Not Captured</span>
-                        )}
-                      </td>
-                      {userRole === 'Admin' && (
-                        <td className="p-3 print:hidden">
-                          <button
-                            onClick={() => {
-                              console.log("[Reports] Clicked delete button for taskId:", task.taskId);
-                              deleteTask(task.taskId);
-                            }}
-                            className="p-1.5 bg-rose-600/10 hover:bg-rose-600 text-rose-455 hover:text-white rounded-lg transition-all cursor-pointer"
-                            title="Delete Task"
-                          >
-                            🗑️
-                          </button>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
+                  {filteredReportTasks.map((task) => {
+                    const firstComment = task.comments && task.comments.length > 0 ? task.comments[0] : null;
+                    const taskMsg = firstComment?.text || task.taskMessage || '';
+                    const hasVoice = !!(firstComment?.voiceUrl || task.taskVoiceUrl);
+                    const hasImg = !!(firstComment?.imageUrl || task.taskImageUrl);
+                    const followUps = task.comments && task.comments.length > 1 ? task.comments.slice(1) : [];
+
+                    return (
+                      <React.Fragment key={task.taskId}>
+                        <tr className="hover:bg-slate-900/30 print:hover:bg-transparent">
+                          <td className="p-3 font-semibold text-slate-200 print:text-black print:border print:border-black">
+                            {userRole === 'Admin' ? (
+                              <button
+                                onClick={() => openTaskDetails(task)}
+                                className="text-left font-bold text-brand-400 hover:text-brand-300 underline cursor-pointer print:text-black print:no-underline"
+                              >
+                                {task.taskTitle}
+                              </button>
+                            ) : (
+                              <span>{task.taskTitle}</span>
+                            )}
+                          </td>
+                          <td className="p-3 font-semibold text-emerald-400 print:text-black print:border print:border-black">
+                            {task.assignedDepartmentName ? `🏢 ${task.assignedDepartmentName}` : '—'}
+                          </td>
+                          <td className="p-3 text-slate-400 print:text-black print:border print:border-black">
+                            {task.assignedToName || 'Department Group'}
+                          </td>
+                          <td className="p-3 print:border print:border-black">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${taskStatusClass(task.status)} print:border-black print:text-black print:bg-transparent`}>
+                              {taskStatusName(task.status)}
+                            </span>
+                          </td>
+                          <td className="p-3 hidden md:table-cell print:table-cell print:border print:border-black">{task.urgency}</td>
+                          <td className="p-3 text-slate-455 font-mono hidden md:table-cell print:table-cell print:border print:border-black">
+                            {task.dueDate ? new Date(task.dueDate).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'None'}
+                          </td>
+                          <td className="p-3 hidden md:table-cell print:hidden">
+                            {task.createdLocation ? (
+                              <a
+                                href={`https://www.google.com/maps/search/?api=1&query=${task.createdLocation.latitude},${task.createdLocation.longitude}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-brand-400 hover:text-brand-300 font-semibold underline flex items-center gap-1"
+                              >
+                                📍 {task.createdLocation.cityName || 'View Map'}
+                              </a>
+                            ) : (
+                              <span className="text-slate-500">Not Captured</span>
+                            )}
+                          </td>
+                          {userRole === 'Admin' && (
+                            <td className="p-3 print:hidden">
+                              <button
+                                onClick={() => {
+                                  console.log("[Reports] Clicked delete button for taskId:", task.taskId);
+                                  deleteTask(task.taskId);
+                                }}
+                                className="p-1.5 bg-rose-600/10 hover:bg-rose-600 text-rose-455 hover:text-white rounded-lg transition-all cursor-pointer"
+                                title="Delete Task"
+                              >
+                                🗑️
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+
+                        {/* Complete Task Details & Description (Detailed Row for Print & Deep Auditing) */}
+                        <tr className="bg-slate-950/40 print:bg-gray-50 print:border print:border-black">
+                          <td colSpan={userRole === 'Admin' ? 8 : 7} className="p-3 text-xs border-t border-slate-900 print:border print:border-black">
+                            <div className="space-y-1.5 text-left print:text-black">
+                              {taskMsg && (
+                                <div>
+                                  <span className="font-bold text-slate-400 uppercase text-[9px] print:text-black block">Description / Instructions:</span>
+                                  <p className="text-slate-300 print:text-black whitespace-pre-wrap leading-relaxed">{taskMsg}</p>
+                                </div>
+                              )}
+                              
+                              {(hasVoice || hasImg) && (
+                                <div className="flex gap-3 text-[10px] text-slate-400 print:text-black italic">
+                                  {hasVoice && <span>🎤 Voice instructions attached</span>}
+                                  {hasImg && <span>🖼️ Photo attachment attached</span>}
+                                </div>
+                              )}
+
+                              {followUps.length > 0 && (
+                                <div className="pt-1 mt-1 border-t border-slate-800/60 print:border-black">
+                                  <span className="font-bold text-amber-400 print:text-black text-[9px] uppercase block">Comments & Updates ({followUps.length}):</span>
+                                  <ul className="space-y-1 mt-1 pl-2">
+                                    {followUps.map((c: any) => (
+                                      <li key={c.commentId} className="text-[11px] text-slate-300 print:text-black">
+                                        • <strong>{c.authorName}:</strong> {c.text || '(Attachment)'} <span className="text-[9px] text-slate-500 print:text-gray-700">({new Date(c.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })})</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      </React.Fragment>
+                    );
+                  })}
                   {filteredReportTasks.length === 0 && (
                     <tr>
                       <td colSpan={userRole === 'Admin' ? 8 : 7} className="p-6 text-center text-slate-500 hidden md:table-cell print:table-cell">No tasks matched your filters.</td>
