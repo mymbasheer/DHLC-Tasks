@@ -1,6 +1,13 @@
 export interface UserPermissions {
   canCreateTasks: boolean;
   canManageUsers?: boolean;
+  canManageDepartments?: boolean;
+  canViewReports?: boolean;
+  canExportReports?: boolean;
+  canViewPerformance?: boolean;
+  canViewMap?: boolean;
+  canDeleteTasks?: boolean;
+  canBroadcast?: boolean;
 }
 
 export interface Department {

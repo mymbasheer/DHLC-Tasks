@@ -18,8 +18,19 @@ const PersonnelCard: React.FC<PersonnelCardProps> = ({ personnel }) => {
     if (personnel.departmentIds && personnel.departmentIds.length > 0) return personnel.departmentIds;
     return personnel.departmentId ? [personnel.departmentId] : [];
   });
-  const [canCreateTasks, setCanCreateTasks] = useState(personnel.permissions?.canCreateTasks || false);
-  const [canManageUsers, setCanManageUsers] = useState(personnel.permissions?.canManageUsers || false);
+
+  // 9 Granular Rights Matrix state
+  const [perms, setPerms] = useState({
+    canCreateTasks: personnel.permissions?.canCreateTasks ?? true,
+    canManageUsers: personnel.permissions?.canManageUsers ?? (personnel.role === 'Admin'),
+    canManageDepartments: personnel.permissions?.canManageDepartments ?? (personnel.role === 'Admin'),
+    canViewReports: personnel.permissions?.canViewReports ?? (personnel.role === 'Admin'),
+    canExportReports: personnel.permissions?.canExportReports ?? (personnel.role === 'Admin'),
+    canViewPerformance: personnel.permissions?.canViewPerformance ?? true,
+    canViewMap: personnel.permissions?.canViewMap ?? (personnel.role === 'Admin'),
+    canDeleteTasks: personnel.permissions?.canDeleteTasks ?? (personnel.role === 'Admin'),
+    canBroadcast: personnel.permissions?.canBroadcast ?? (personnel.role === 'Admin'),
+  });
 
   useEffect(() => {
     if (!isEditing) {
@@ -28,8 +39,17 @@ const PersonnelCard: React.FC<PersonnelCardProps> = ({ personnel }) => {
       setRole(personnel.role);
       setMobileNumber(personnel.mobileNumber || '');
       setSelectedDeptIds(personnel.departmentIds && personnel.departmentIds.length > 0 ? personnel.departmentIds : (personnel.departmentId ? [personnel.departmentId] : []));
-      setCanCreateTasks(personnel.permissions?.canCreateTasks || false);
-      setCanManageUsers(personnel.permissions?.canManageUsers || false);
+      setPerms({
+        canCreateTasks: personnel.permissions?.canCreateTasks ?? true,
+        canManageUsers: personnel.permissions?.canManageUsers ?? (personnel.role === 'Admin'),
+        canManageDepartments: personnel.permissions?.canManageDepartments ?? (personnel.role === 'Admin'),
+        canViewReports: personnel.permissions?.canViewReports ?? (personnel.role === 'Admin'),
+        canExportReports: personnel.permissions?.canExportReports ?? (personnel.role === 'Admin'),
+        canViewPerformance: personnel.permissions?.canViewPerformance ?? true,
+        canViewMap: personnel.permissions?.canViewMap ?? (personnel.role === 'Admin'),
+        canDeleteTasks: personnel.permissions?.canDeleteTasks ?? (personnel.role === 'Admin'),
+        canBroadcast: personnel.permissions?.canBroadcast ?? (personnel.role === 'Admin'),
+      });
     }
   }, [personnel, isEditing]);
 
@@ -42,14 +62,29 @@ const PersonnelCard: React.FC<PersonnelCardProps> = ({ personnel }) => {
   const handleRoleChange = (newRole: string) => {
     setRole(newRole);
     if (newRole === 'Admin') {
-      setCanCreateTasks(true);
-      setCanManageUsers(true);
+      setPerms({
+        canCreateTasks: true,
+        canManageUsers: true,
+        canManageDepartments: true,
+        canViewReports: true,
+        canExportReports: true,
+        canViewPerformance: true,
+        canViewMap: true,
+        canDeleteTasks: true,
+        canBroadcast: true,
+      });
     } else if (newRole === 'User') {
-      setCanCreateTasks(true);
-      setCanManageUsers(false);
-    } else {
-      setCanCreateTasks(false);
-      setCanManageUsers(false);
+      setPerms({
+        canCreateTasks: true,
+        canManageUsers: false,
+        canManageDepartments: false,
+        canViewReports: false,
+        canExportReports: false,
+        canViewPerformance: true,
+        canViewMap: false,
+        canDeleteTasks: false,
+        canBroadcast: false,
+      });
     }
   };
 
@@ -59,8 +94,17 @@ const PersonnelCard: React.FC<PersonnelCardProps> = ({ personnel }) => {
     setRole(personnel.role);
     setMobileNumber(personnel.mobileNumber || '');
     setSelectedDeptIds(personnel.departmentIds && personnel.departmentIds.length > 0 ? personnel.departmentIds : (personnel.departmentId ? [personnel.departmentId] : []));
-    setCanCreateTasks(personnel.permissions?.canCreateTasks || false);
-    setCanManageUsers(personnel.permissions?.canManageUsers || false);
+    setPerms({
+      canCreateTasks: personnel.permissions?.canCreateTasks ?? true,
+      canManageUsers: personnel.permissions?.canManageUsers ?? (personnel.role === 'Admin'),
+      canManageDepartments: personnel.permissions?.canManageDepartments ?? (personnel.role === 'Admin'),
+      canViewReports: personnel.permissions?.canViewReports ?? (personnel.role === 'Admin'),
+      canExportReports: personnel.permissions?.canExportReports ?? (personnel.role === 'Admin'),
+      canViewPerformance: personnel.permissions?.canViewPerformance ?? true,
+      canViewMap: personnel.permissions?.canViewMap ?? (personnel.role === 'Admin'),
+      canDeleteTasks: personnel.permissions?.canDeleteTasks ?? (personnel.role === 'Admin'),
+      canBroadcast: personnel.permissions?.canBroadcast ?? (personnel.role === 'Admin'),
+    });
     setIsEditing(false);
   };
 
@@ -79,7 +123,8 @@ const PersonnelCard: React.FC<PersonnelCardProps> = ({ personnel }) => {
       primaryDeptId, 
       primaryDeptName, 
       selectedDeptIds, 
-      deptNames
+      deptNames,
+      perms
     );
     setIsEditing(false);
   };
@@ -172,37 +217,55 @@ const PersonnelCard: React.FC<PersonnelCardProps> = ({ personnel }) => {
         )}
       </div>
 
-      {/* Operational Permissions */}
+      {/* Operational Permissions Matrix Checkboxes */}
       <div className="space-y-2 pt-2 border-t border-slate-800/40 text-left">
-        <span className="block text-[10px] text-slate-500 uppercase font-bold tracking-wider">Operational Rights</span>
+        <span className="block text-[10px] text-slate-500 uppercase font-bold tracking-wider text-brand-400">User Rights Matrix</span>
         {isEditing ? (
-          <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-350">
+          <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-300 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
             <label className="flex items-center space-x-1.5 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={canCreateTasks}
-                disabled={role === 'Admin' || role === 'User'}
-                onChange={(e) => setCanCreateTasks(e.target.checked)}
-                className="rounded border-slate-800 bg-slate-955 text-brand-500 focus:ring-brand-500 h-3.5 w-3.5 disabled:opacity-55"
-              />
+              <input type="checkbox" checked={perms.canCreateTasks} onChange={e => setPerms({ ...perms, canCreateTasks: e.target.checked })} className="rounded bg-slate-900 border-slate-800 text-brand-500 h-3.5 w-3.5" />
               <span>Create Tasks</span>
             </label>
             <label className="flex items-center space-x-1.5 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={canManageUsers}
-                disabled={role !== 'Admin'}
-                onChange={(e) => setCanManageUsers(e.target.checked)}
-                className="rounded border-slate-800 bg-slate-955 text-brand-500 focus:ring-brand-500 h-3.5 w-3.5 disabled:opacity-55"
-              />
+              <input type="checkbox" checked={perms.canManageUsers} onChange={e => setPerms({ ...perms, canManageUsers: e.target.checked })} className="rounded bg-slate-900 border-slate-800 text-brand-500 h-3.5 w-3.5" />
               <span>Manage Users</span>
+            </label>
+            <label className="flex items-center space-x-1.5 cursor-pointer">
+              <input type="checkbox" checked={perms.canManageDepartments} onChange={e => setPerms({ ...perms, canManageDepartments: e.target.checked })} className="rounded bg-slate-900 border-slate-800 text-brand-500 h-3.5 w-3.5" />
+              <span>Manage Depts</span>
+            </label>
+            <label className="flex items-center space-x-1.5 cursor-pointer">
+              <input type="checkbox" checked={perms.canViewReports} onChange={e => setPerms({ ...perms, canViewReports: e.target.checked })} className="rounded bg-slate-900 border-slate-800 text-brand-500 h-3.5 w-3.5" />
+              <span>Reports Desk</span>
+            </label>
+            <label className="flex items-center space-x-1.5 cursor-pointer">
+              <input type="checkbox" checked={perms.canExportReports} onChange={e => setPerms({ ...perms, canExportReports: e.target.checked })} className="rounded bg-slate-900 border-slate-800 text-brand-500 h-3.5 w-3.5" />
+              <span>Export CSV</span>
+            </label>
+            <label className="flex items-center space-x-1.5 cursor-pointer">
+              <input type="checkbox" checked={perms.canViewPerformance} onChange={e => setPerms({ ...perms, canViewPerformance: e.target.checked })} className="rounded bg-slate-900 border-slate-800 text-brand-500 h-3.5 w-3.5" />
+              <span>Performance</span>
+            </label>
+            <label className="flex items-center space-x-1.5 cursor-pointer">
+              <input type="checkbox" checked={perms.canViewMap} onChange={e => setPerms({ ...perms, canViewMap: e.target.checked })} className="rounded bg-slate-900 border-slate-800 text-brand-500 h-3.5 w-3.5" />
+              <span>Location Map</span>
+            </label>
+            <label className="flex items-center space-x-1.5 cursor-pointer">
+              <input type="checkbox" checked={perms.canDeleteTasks} onChange={e => setPerms({ ...perms, canDeleteTasks: e.target.checked })} className="rounded bg-slate-900 border-slate-800 text-brand-500 h-3.5 w-3.5" />
+              <span>Delete Tasks</span>
+            </label>
+            <label className="flex items-center space-x-1.5 cursor-pointer">
+              <input type="checkbox" checked={perms.canBroadcast} onChange={e => setPerms({ ...perms, canBroadcast: e.target.checked })} className="rounded bg-slate-900 border-slate-800 text-brand-500 h-3.5 w-3.5" />
+              <span>Send Broadcast</span>
             </label>
           </div>
         ) : (
-          <div className="flex flex-wrap gap-1.5">
-            {canCreateTasks && <span className="bg-slate-900 border border-slate-800 text-[10px] text-slate-300 px-2 py-0.5 rounded font-medium">Create Tasks</span>}
-            {canManageUsers && <span className="bg-slate-900 border border-slate-800 text-[10px] text-slate-300 px-2 py-0.5 rounded font-medium">Manage Users</span>}
-            {!canCreateTasks && !canManageUsers && <span className="text-[10px] text-slate-500">None</span>}
+          <div className="flex flex-wrap gap-1">
+            {perms.canCreateTasks && <span className="bg-slate-950 border border-slate-800 text-[9px] text-slate-300 px-1.5 py-0.5 rounded">Create Tasks</span>}
+            {perms.canManageUsers && <span className="bg-slate-950 border border-slate-800 text-[9px] text-brand-400 px-1.5 py-0.5 rounded">Manage Users</span>}
+            {perms.canViewReports && <span className="bg-slate-950 border border-slate-800 text-[9px] text-emerald-400 px-1.5 py-0.5 rounded">Reports</span>}
+            {perms.canViewMap && <span className="bg-slate-950 border border-slate-800 text-[9px] text-cyan-400 px-1.5 py-0.5 rounded">Map</span>}
+            {perms.canDeleteTasks && <span className="bg-slate-950 border border-slate-800 text-[9px] text-rose-400 px-1.5 py-0.5 rounded">Delete Tasks</span>}
           </div>
         )}
       </div>
@@ -340,6 +403,54 @@ export const Invitations: React.FC = () => {
         {departmentsList.length === 0 && (
           <p className="text-xs text-slate-500 text-center italic py-2">No departments created yet. Create a department above.</p>
         )}
+      </div>
+
+      {/* User Rights Matrix Overview Table */}
+      <div className="glass rounded-2xl p-6 space-y-4 text-left w-full border border-slate-800">
+        <div>
+          <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+            🛡️ User Rights Matrix Overview
+          </h2>
+          <p className="text-xs text-slate-400 mt-1">Audit active operational permissions across all registered personnel</p>
+        </div>
+
+        <div className="overflow-x-auto rounded-xl border border-slate-800">
+          <table className="w-full text-left text-xs text-slate-300">
+            <thead className="bg-slate-950 text-slate-400 uppercase text-[9px] tracking-wider border-b border-slate-800">
+              <tr>
+                <th className="p-3">User</th>
+                <th className="p-3">Role</th>
+                <th className="p-3 text-center">Create Tasks</th>
+                <th className="p-3 text-center">Manage Users</th>
+                <th className="p-3 text-center">Manage Depts</th>
+                <th className="p-3 text-center">Reports</th>
+                <th className="p-3 text-center">Export CSV</th>
+                <th className="p-3 text-center">Location Map</th>
+                <th className="p-3 text-center">Delete Tasks</th>
+                <th className="p-3 text-center">Broadcast</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-900">
+              {personnelList.map(u => {
+                const p = u.permissions || {};
+                return (
+                  <tr key={u.uid} className="hover:bg-slate-900/30">
+                    <td className="p-3 font-bold text-slate-200">{u.name}</td>
+                    <td className="p-3 font-semibold text-brand-400">{u.role}</td>
+                    <td className="p-3 text-center font-bold">{p.canCreateTasks ? '✅' : '❌'}</td>
+                    <td className="p-3 text-center font-bold">{p.canManageUsers ? '✅' : '❌'}</td>
+                    <td className="p-3 text-center font-bold">{p.canManageDepartments ? '✅' : '❌'}</td>
+                    <td className="p-3 text-center font-bold">{p.canViewReports ? '✅' : '❌'}</td>
+                    <td className="p-3 text-center font-bold">{p.canExportReports ? '✅' : '❌'}</td>
+                    <td className="p-3 text-center font-bold">{p.canViewMap ? '✅' : '❌'}</td>
+                    <td className="p-3 text-center font-bold">{p.canDeleteTasks ? '✅' : '❌'}</td>
+                    <td className="p-3 text-center font-bold">{p.canBroadcast ? '✅' : '❌'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="glass rounded-2xl p-6 space-y-6 text-left w-full border border-slate-800">

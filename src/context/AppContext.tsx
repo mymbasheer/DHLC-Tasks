@@ -160,7 +160,7 @@ export interface AppContextType {
   hasUnreadComments: (task: Task) => boolean;
   addCustomTaskType: (typeName?: string) => Promise<void>;
   removeCustomTaskType: (id: string) => Promise<void>;
-  updateUserRights: (uid: string, name: string, email: string, role: string, mobileNumber?: string, departmentId?: string, departmentName?: string, departmentIds?: string[], departmentNames?: string[]) => Promise<void>;
+  updateUserRights: (uid: string, name: string, email: string, role: string, mobileNumber?: string, departmentId?: string, departmentName?: string, departmentIds?: string[], departmentNames?: string[], customPermissions?: UserPermissions) => Promise<void>;
   toggleUserStatus: (uid: string, status: 'Active' | 'Suspended') => Promise<void>;
   startEditTask: () => void;
   cancelEditTask: () => void;
@@ -1509,25 +1509,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     departmentId?: string, 
     departmentName?: string,
     departmentIds?: string[],
-    departmentNames?: string[]
+    departmentNames?: string[],
+    customPermissions?: UserPermissions
   ) => {
     try {
       const userRef = doc(db, 'users', userUid);
-      let finalPermissions = {
-        canCreateTasks: false,
-        canManageUsers: false
+      let finalPermissions: UserPermissions = customPermissions || {
+        canCreateTasks: role === 'Admin' || role === 'User',
+        canManageUsers: role === 'Admin',
+        canManageDepartments: role === 'Admin',
+        canViewReports: role === 'Admin',
+        canExportReports: role === 'Admin',
+        canViewPerformance: true,
+        canViewMap: role === 'Admin',
+        canDeleteTasks: role === 'Admin',
+        canBroadcast: role === 'Admin'
       };
-      if (role === 'Admin') {
-        finalPermissions = {
-          canCreateTasks: true,
-          canManageUsers: true
-        };
-      } else if (role === 'User') {
-        finalPermissions = {
-          canCreateTasks: true,
-          canManageUsers: false
-        };
-      }
+
       await setDoc(userRef, {
         name,
         email,

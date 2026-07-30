@@ -38,9 +38,14 @@ export const Navigation: React.FC = () => {
     }
   };
 
+  const p = user?.permissions || {};
   const isAdminOrOwner = userRole === 'Admin';
 
-  const canCreate = userRole === 'Admin' || user?.permissions?.canCreateTasks;
+  const canCreate = isAdminOrOwner || p.canCreateTasks;
+  const canViewReports = isAdminOrOwner || p.canViewReports;
+  const canViewPerformance = p.canViewPerformance !== false;
+  const canViewMap = isAdminOrOwner || p.canViewMap;
+  const canManageUsers = isAdminOrOwner || p.canManageUsers;
 
   const navItems = [
     {
@@ -73,7 +78,6 @@ export const Navigation: React.FC = () => {
       ),
       show: canCreate
     },
-
     {
       id: 'reports',
       label: 'Reports Desk',
@@ -82,7 +86,7 @@ export const Navigation: React.FC = () => {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
       ),
-      show: isAdminOrOwner
+      show: canViewReports
     },
     {
       id: 'performance',
@@ -92,7 +96,7 @@ export const Navigation: React.FC = () => {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
         </svg>
       ),
-      show: true
+      show: canViewPerformance
     },
     {
       id: 'map',
@@ -103,7 +107,7 @@ export const Navigation: React.FC = () => {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       ),
-      show: isAdminOrOwner
+      show: canViewMap
     },
     {
       id: 'invites',
@@ -113,7 +117,7 @@ export const Navigation: React.FC = () => {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
         </svg>
       ),
-      show: isAdminOrOwner
+      show: canManageUsers
     }
   ];
 
