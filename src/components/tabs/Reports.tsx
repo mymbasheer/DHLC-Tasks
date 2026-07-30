@@ -31,9 +31,19 @@ export const Reports: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left">
+      {/* Landscape Print Orientation Styling */}
+      <style>{`
+        @media print {
+          @page {
+            size: landscape;
+            margin: 10mm;
+          }
+        }
+      `}</style>
+
       {/* Printable Official Header (Shown only during printing) */}
       <div className="hidden print:block mb-6 border-b-2 border-black pb-4 text-black">
-        <h1 className="text-2xl font-bold uppercase tracking-wider">DHLC Tasks — Department Work Orders & Tasks Master Report</h1>
+        <h1 className="text-2xl font-bold uppercase tracking-wider">DHLC TASKS — DEPARTMENT WORK ORDERS & TASKS MASTER REPORT</h1>
         <p className="text-xs mt-1">Generated Date: {new Date().toLocaleString()} | Total Tasks: {filteredReportTasks.length}</p>
         <div className="flex flex-wrap gap-4 text-xs mt-2 pt-2 border-t border-gray-300">
           <span>Filter Status: <strong>{reportFilters.status || 'All Statuses'}</strong></span>
@@ -53,14 +63,12 @@ export const Reports: React.FC = () => {
           <button
             onClick={() => {
               if (filteredReportTasks.length === 0) return;
-              const headers = ['Work Order No / Title', 'Department', 'Assignee', 'Status', 'Urgency', 'Due Date', 'Instructions'];
+              const headers = ['Work Order No / Title', 'Status', 'Urgency', 'Due Date', 'DESCRIPTION / INSTRUCTIONS:'];
               const rows = filteredReportTasks.map(t => {
                 const firstComm = t.comments && t.comments.length > 0 ? t.comments[0] : null;
                 const msg = (firstComm?.text || t.taskMessage || '').replace(/"/g, '""');
                 return [
                   `"${t.taskTitle}"`,
-                  `"${t.assignedDepartmentName || 'General'}"`,
-                  `"${t.assignedToName || 'Department Group'}"`,
                   `"${t.status}"`,
                   `"${t.urgency}"`,
                   `"${t.dueDate ? t.dueDate.split('T')[0] : ''}"`,
@@ -88,7 +96,7 @@ export const Reports: React.FC = () => {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
             </svg>
-            <span>Print Complete Department Report</span>
+            <span>Print Complete Department Report (Landscape)</span>
           </button>
         </div>
       </div>
@@ -161,6 +169,8 @@ export const Reports: React.FC = () => {
               <option value="Pending">Pending</option>
               <option value="In_Progress">In Progress</option>
               <option value="Completed">Completed</option>
+              <option value="Suspended">Suspended</option>
+              <option value="Cancelled">Cancelled</option>
             </select>
           </div>
         </div>
@@ -188,20 +198,19 @@ export const Reports: React.FC = () => {
       <div className="space-y-6">
         {/* 1. Task Operations Report */}
         <div className="space-y-2">
-          <h3 className="text-sm font-bold text-slate-350 uppercase tracking-wider print:text-black">Task Operations & Department Work Orders</h3>
+          <h3 className="text-sm font-bold text-slate-350 uppercase tracking-wider print:text-black">Task Operations Master Report</h3>
           <div className="glass rounded-xl overflow-hidden print:border print:border-black print:bg-white print:shadow-none">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-300 print:text-black print:border-collapse">
                 <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800 print:bg-gray-200 print:text-black print:border-black">
                   <tr>
                     <th className="p-3 print:border print:border-black">Work Order / Title</th>
-                    <th className="p-3 print:border print:border-black">Department</th>
-                    <th className="p-3 print:border print:border-black">Assignee</th>
                     <th className="p-3 print:border print:border-black">Status</th>
                     <th className="p-3 hidden md:table-cell print:table-cell print:border print:border-black">Urgency</th>
                     <th className="p-3 hidden md:table-cell print:table-cell print:border print:border-black">Due Date</th>
                     <th className="p-3 hidden md:table-cell print:hidden">Location</th>
                     {userRole === 'Admin' && <th className="p-3 print:hidden">Action</th>}
+                    <th className="p-3 print:border print:border-black">DESCRIPTION / INSTRUCTIONS:</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-900 print:divide-y print:divide-black">
@@ -213,105 +222,88 @@ export const Reports: React.FC = () => {
                     const followUps = task.comments && task.comments.length > 1 ? task.comments.slice(1) : [];
 
                     return (
-                      <React.Fragment key={task.taskId}>
-                        <tr className="hover:bg-slate-900/30 print:hover:bg-transparent">
-                          <td className="p-3 font-semibold text-slate-200 print:text-black print:border print:border-black">
-                            {userRole === 'Admin' ? (
-                              <button
-                                onClick={() => openTaskDetails(task)}
-                                className="text-left font-bold text-brand-400 hover:text-brand-300 underline cursor-pointer print:text-black print:no-underline"
-                              >
-                                {task.taskTitle}
-                              </button>
-                            ) : (
-                              <span>{task.taskTitle}</span>
-                            )}
-                          </td>
-                          <td className="p-3 font-semibold text-emerald-400 print:text-black print:border print:border-black">
-                            {task.assignedDepartmentName ? `🏢 ${task.assignedDepartmentName}` : '—'}
-                          </td>
-                          <td className="p-3 text-slate-400 print:text-black print:border print:border-black">
-                            {task.assignedToName || 'Department Group'}
-                          </td>
-                          <td className="p-3 print:border print:border-black">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${taskStatusClass(task.status)} print:border-black print:text-black print:bg-transparent`}>
-                              {taskStatusName(task.status)}
-                            </span>
-                          </td>
-                          <td className="p-3 hidden md:table-cell print:table-cell print:border print:border-black">{task.urgency}</td>
-                          <td className="p-3 text-slate-455 font-mono hidden md:table-cell print:table-cell print:border print:border-black">
-                            {task.dueDate ? new Date(task.dueDate).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'None'}
-                          </td>
-                          <td className="p-3 hidden md:table-cell print:hidden">
-                            {task.createdLocation ? (
-                              <a
-                                href={`https://www.google.com/maps/search/?api=1&query=${task.createdLocation.latitude},${task.createdLocation.longitude}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-brand-400 hover:text-brand-300 font-semibold underline flex items-center gap-1"
-                              >
-                                📍 {task.createdLocation.cityName || 'View Map'}
-                              </a>
-                            ) : (
-                              <span className="text-slate-500">Not Captured</span>
-                            )}
-                          </td>
-                          {userRole === 'Admin' && (
-                            <td className="p-3 print:hidden">
-                              <button
-                                onClick={() => {
-                                  console.log("[Reports] Clicked delete button for taskId:", task.taskId);
-                                  deleteTask(task.taskId);
-                                }}
-                                className="p-1.5 bg-rose-600/10 hover:bg-rose-600 text-rose-455 hover:text-white rounded-lg transition-all cursor-pointer"
-                                title="Delete Task"
-                              >
-                                🗑️
-                              </button>
-                            </td>
+                      <tr key={task.taskId} className="hover:bg-slate-900/30 print:hover:bg-transparent">
+                        <td className="p-3 font-semibold text-slate-200 print:text-black print:border print:border-black align-top">
+                          {userRole === 'Admin' ? (
+                            <button
+                              onClick={() => openTaskDetails(task)}
+                              className="text-left font-bold text-brand-400 hover:text-brand-300 underline cursor-pointer print:text-black print:no-underline"
+                            >
+                              {task.taskTitle}
+                            </button>
+                          ) : (
+                            <span>{task.taskTitle}</span>
                           )}
-                        </tr>
-
-                        {/* Complete Task Details & Description (Detailed Row for Print & Deep Auditing) */}
-                        <tr className="bg-slate-950/40 print:bg-gray-50 print:border print:border-black">
-                          <td colSpan={userRole === 'Admin' ? 8 : 7} className="p-3 text-xs border-t border-slate-900 print:border print:border-black">
-                            <div className="space-y-1.5 text-left print:text-black">
-                              {taskMsg && (
-                                <div>
-                                  <span className="font-bold text-slate-400 uppercase text-[9px] print:text-black block">Description / Instructions:</span>
-                                  <p className="text-slate-300 print:text-black whitespace-pre-wrap leading-relaxed">{taskMsg}</p>
-                                </div>
-                              )}
-                              
-                              {(hasVoice || hasImg) && (
-                                <div className="flex gap-3 text-[10px] text-slate-400 print:text-black italic">
-                                  {hasVoice && <span>🎤 Voice instructions attached</span>}
-                                  {hasImg && <span>🖼️ Photo attachment attached</span>}
-                                </div>
-                              )}
-
-                              {followUps.length > 0 && (
-                                <div className="pt-1 mt-1 border-t border-slate-800/60 print:border-black">
-                                  <span className="font-bold text-amber-400 print:text-black text-[9px] uppercase block">Comments & Updates ({followUps.length}):</span>
-                                  <ul className="space-y-1 mt-1 pl-2">
-                                    {followUps.map((c: any) => (
-                                      <li key={c.commentId} className="text-[11px] text-slate-300 print:text-black">
-                                        • <strong>{c.authorName}:</strong> {c.text || '(Attachment)'} <span className="text-[9px] text-slate-500 print:text-gray-700">({new Date(c.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })})</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                            </div>
+                        </td>
+                        <td className="p-3 print:border print:border-black align-top">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${taskStatusClass(task.status)} print:border-black print:text-black print:bg-transparent`}>
+                            {taskStatusName(task.status)}
+                          </span>
+                        </td>
+                        <td className="p-3 hidden md:table-cell print:table-cell print:border print:border-black align-top">{task.urgency}</td>
+                        <td className="p-3 text-slate-455 font-mono hidden md:table-cell print:table-cell print:border print:border-black align-top">
+                          {task.dueDate ? new Date(task.dueDate).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'None'}
+                        </td>
+                        <td className="p-3 hidden md:table-cell print:hidden align-top">
+                          {task.createdLocation ? (
+                            <a
+                              href={`https://www.google.com/maps/search/?api=1&query=${task.createdLocation.latitude},${task.createdLocation.longitude}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-brand-400 hover:text-brand-300 font-semibold underline flex items-center gap-1"
+                            >
+                              📍 {task.createdLocation.cityName || 'View Map'}
+                            </a>
+                          ) : (
+                            <span className="text-slate-500">Not Captured</span>
+                          )}
+                        </td>
+                        {userRole === 'Admin' && (
+                          <td className="p-3 print:hidden align-top">
+                            <button
+                              onClick={() => {
+                                deleteTask(task.taskId);
+                              }}
+                              className="p-1.5 bg-rose-600/10 hover:bg-rose-600 text-rose-455 hover:text-white rounded-lg transition-all cursor-pointer"
+                              title="Delete Task"
+                            >
+                              🗑️
+                            </button>
                           </td>
-                        </tr>
-                      </React.Fragment>
+                        )}
+                        <td className="p-3 text-xs print:border print:border-black align-top">
+                          <div className="space-y-1 text-left print:text-black">
+                            <p className="text-slate-300 print:text-black whitespace-pre-wrap leading-relaxed">
+                              {taskMsg || '(No description provided)'}
+                            </p>
+
+                            {(hasVoice || hasImg) && (
+                              <div className="flex gap-3 text-[10px] text-slate-400 print:text-black italic pt-1">
+                                {hasVoice && <span>🎤 Voice attached</span>}
+                                {hasImg && <span>🖼️ Photo attached</span>}
+                              </div>
+                            )}
+
+                            {followUps.length > 0 && (
+                              <div className="pt-1 mt-1 border-t border-slate-800/60 print:border-black">
+                                <span className="font-bold text-amber-400 print:text-black text-[9px] uppercase block">Updates ({followUps.length}):</span>
+                                <ul className="space-y-0.5 mt-0.5 pl-2">
+                                  {followUps.map((c: any) => (
+                                    <li key={c.commentId} className="text-[10px] text-slate-400 print:text-black">
+                                      • <strong>{c.authorName}:</strong> {c.text || '(Attachment)'}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
                     );
                   })}
                   {filteredReportTasks.length === 0 && (
                     <tr>
-                      <td colSpan={userRole === 'Admin' ? 8 : 7} className="p-6 text-center text-slate-500 hidden md:table-cell print:table-cell">No tasks matched your filters.</td>
-                      <td colSpan={4} className="p-6 text-center text-slate-500 md:hidden print:hidden">No tasks matched.</td>
+                      <td colSpan={userRole === 'Admin' ? 7 : 6} className="p-6 text-center text-slate-500">No tasks matched your filters.</td>
                     </tr>
                   )}
                 </tbody>
@@ -319,7 +311,6 @@ export const Reports: React.FC = () => {
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );

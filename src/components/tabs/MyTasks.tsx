@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { db } from '../../firebase';
 import { doc, setDoc } from 'firebase/firestore';
+import { AdminTaskActionModal } from '../modals/AdminTaskActionModal';
+import { Task } from '../../types';
 
 // Task type priority order and flag config
 const TASK_TYPE_ORDER: Record<string, number> = { Urgent: 0, High: 1, Medium: 2, Normal: 3, Regular: 3 };
@@ -42,6 +44,7 @@ export const MyTasks: React.FC = () => {
 
   const [activeStatsFilter, setActiveStatsFilter] = useState<'Active' | 'All' | 'Pending' | 'In_Progress' | 'Completed'>('Active');
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>('');
+  const [adminActionTask, setAdminActionTask] = useState<Task | null>(null);
 
   if (currentTab !== 'tasks') return null;
 
@@ -269,7 +272,7 @@ export const MyTasks: React.FC = () => {
         </div>
 
         {/* Card Footer Actions */}
-        <div className="pt-3 border-t border-slate-900 flex items-center justify-between gap-3 text-xs">
+        <div className="pt-3 border-t border-slate-900 flex items-center justify-between gap-2 text-xs">
           <button
             onClick={() => cycleStatus && cycleStatus(task)}
             className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
@@ -283,12 +286,24 @@ export const MyTasks: React.FC = () => {
             Status: {taskStatusName ? taskStatusName(task.status) : task.status}
           </button>
 
-          <button
-            onClick={() => openTaskDetails && openTaskDetails(task)}
-            className="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-semibold transition-colors cursor-pointer shadow-sm"
-          >
-            Open Task & Chat 💬
-          </button>
+          <div className="flex items-center gap-2">
+            {userRole === 'Admin' && (
+              <button
+                onClick={() => setAdminActionTask(task)}
+                className="px-2.5 py-1.5 bg-amber-600/20 hover:bg-amber-600/40 text-amber-400 border border-amber-500/30 rounded-lg font-bold transition-colors cursor-pointer"
+                title="Postpone, Suspend, or Cancel Task"
+              >
+                ⚙️ Admin Control
+              </button>
+            )}
+
+            <button
+              onClick={() => openTaskDetails && openTaskDetails(task)}
+              className="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-semibold transition-colors cursor-pointer shadow-sm"
+            >
+              Open Task & Chat 💬
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -469,6 +484,14 @@ export const MyTasks: React.FC = () => {
           <p className="text-base font-semibold text-slate-400">No tasks found for this selection.</p>
           <p className="text-xs text-slate-500">Change the date or status filter above to view other tasks.</p>
         </div>
+      )}
+
+      {/* Admin Task Action Modal */}
+      {adminActionTask && (
+        <AdminTaskActionModal
+          task={adminActionTask}
+          onClose={() => setAdminActionTask(null)}
+        />
       )}
     </div>
   );

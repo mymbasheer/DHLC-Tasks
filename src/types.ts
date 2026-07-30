@@ -30,6 +30,7 @@ export interface User {
   departmentName?: string;
   departmentIds?: string[];
   departmentNames?: string[];
+  createdAt?: string;
 }
 
 export interface Comment {
@@ -77,7 +78,7 @@ export interface Task {
   assignedDepartmentId?: string;
   assignedDepartmentName?: string;
   createdBy: string;
-  status: 'Pending' | 'In_Progress' | 'Completed';
+  status: 'Pending' | 'In_Progress' | 'Completed' | 'Suspended' | 'Cancelled';
   urgency: 'Low' | 'Medium' | 'High' | 'Critical';
   dueDate: string;
   comments: Comment[];
@@ -86,6 +87,9 @@ export interface Task {
   dateKey: string;
   updatedAt: string;
   completedAt?: string | null;
+  suspendedUntil?: string;
+  postponedTill?: string;
+  actionReason?: string;
   transferHistory?: TransferLog[];
   auditTrail?: AuditLog[];
   checklist?: ChecklistItem[];
