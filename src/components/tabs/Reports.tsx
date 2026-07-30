@@ -35,45 +35,58 @@ export const Reports: React.FC = () => {
       <style>{`
         @media print {
           @page {
-            size: A4 landscape;
-            margin: 6mm;
+            size: landscape;
+            margin: 8mm;
           }
           html, body, #root {
             background: white !important;
             color: black !important;
             height: auto !important;
+            min-height: auto !important;
             overflow: visible !important;
             margin: 0 !important;
             padding: 0 !important;
           }
-          .space-y-6, .space-y-4, .space-y-2 {
-            margin: 0 !important;
+          header, nav, aside, .print\\:hidden {
+            display: none !important;
+          }
+          main {
             padding: 0 !important;
+            margin: 0 !important;
+            display: block !important;
+            width: 100% !important;
           }
-          .space-y-6 > * + *, .space-y-4 > * + *, .space-y-2 > * + * {
+          .glass, .glass * {
+            background: transparent !important;
+            border-color: black !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+          }
+          .space-y-6, .space-y-4, .space-y-2, div, section {
             margin-top: 0 !important;
-          }
-          .mb-6 {
-            margin-bottom: 0.25rem !important;
-            padding-bottom: 0.25rem !important;
+            margin-bottom: 0 !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
           }
           table {
             border-collapse: collapse !important;
             width: 100% !important;
             margin: 0 !important;
+            table-layout: auto !important;
           }
           tr {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
           }
           td, th {
-            padding: 3px 5px !important;
-            vertical-align: middle !important;
+            padding: 5px 8px !important;
+            vertical-align: top !important;
             color: black !important;
             opacity: 1 !important;
             visibility: visible !important;
+            border: 1px solid black !important;
             font-size: 11px !important;
-            line-height: 1.2 !important;
+            line-height: 1.3 !important;
           }
           thead {
             display: table-header-group !important;
