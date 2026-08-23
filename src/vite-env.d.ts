@@ -1,2 +1,6 @@
 /// <reference types="vite/client" />
 /// <reference types="vite-plugin-pwa/client" />
+
+declare const process: {
+  env: Record<string, string | undefined>;
+};

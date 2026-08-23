@@ -12,7 +12,6 @@ export const Reports: React.FC = () => {
     userRoleName,
     taskStatusClass,
     taskStatusName,
-    openTaskDetails,
     userRole,
     deleteTask
   } = useApp();

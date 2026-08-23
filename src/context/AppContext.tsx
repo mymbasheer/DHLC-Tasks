@@ -710,19 +710,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           } else if (['Account_Incharge', 'Office_Staff', 'Field_Staff', 'Cash_Collector'].includes(data.role)) {
             normalizedRole = 'User';
           }
-          let name = data.name;
-          if (name === 'Owner' || name === 'System Owner') {
-            name = 'Admin';
-          }
+          let name = data.name || 'User';
           return { ...data, name, role: normalizedRole };
         })
-        .filter(u => 
-          u.role !== 'Owner' && 
-          u.email?.toLowerCase() !== 'mymbasheer@gmail.com' && 
-          u.name !== 'Owner' && 
-          u.name !== 'System Owner' && 
-          u.name !== 'M. Basheer'
-        );
+        .filter(u => u.role !== 'Owner');
       
       // Re-read the current user's role directly from Firestore to avoid stale closure
       let callerRole = userRole;
@@ -1274,20 +1265,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
-      mediaRecorder.onstop = () => {
-        let type = mediaRecorder.mimeType;
-        if (!type) {
-          type = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : 'audio/webm';
-        }
-        const audioBlob = new Blob(audioChunksRef.current, { type });
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = () => {
-          const base64data = reader.result as string;
-          setNewCommentVoiceUrl(base64data);
+      mediaRecorder.onstop = async () => {
+        try {
+          let type = mediaRecorder.mimeType;
+          if (!type) {
+            type = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : 'audio/webm';
+          }
+          const audioBlob = new Blob(audioChunksRef.current, { type });
+          const ext = type.includes('mp4') ? 'mp4' : 'webm';
+          const fileRef = ref(storage, `comments_voice/${Date.now()}_comment_voice.${ext}`);
+          await uploadBytes(fileRef, audioBlob, { contentType: type });
+          const voiceUrl = await getDownloadURL(fileRef);
+          setNewCommentVoiceUrl(voiceUrl);
           setVoiceRecordingState('finished');
-          showToast('Voice message processed instantly!', 'success');
-        };
+          showToast('Voice note uploaded!', 'success');
+        } catch (err) {
+          console.error('Failed to upload comment voice:', err);
+          showToast('Failed to upload voice note.', 'error');
+        }
       };
       mediaRecorder.start();
       setVoiceRecordingState('recording');
@@ -1738,7 +1733,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const resetPerformanceLeaderboard = async () => {
-    if (!user || user.email !== 'mymbasheer@gmail.com') {
+    if (!user || (userRole !== 'Admin' && userRole !== 'Owner' && !user.permissions?.canManageUsers)) {
       showToast('Only an Administrator can reset the leaderboard.', 'error');
       return;
     }

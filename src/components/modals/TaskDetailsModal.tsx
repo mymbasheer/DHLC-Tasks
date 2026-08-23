@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
-import { storage } from '../../firebase';
+import { db, storage } from '../../firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { compressImage } from '../../utils/image';
 
@@ -160,7 +161,7 @@ export const TaskDetailsModal: React.FC = () => {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
 
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         try {
           setVoiceUploading(true);
           let type = mediaRecorder.mimeType;
@@ -168,16 +169,15 @@ export const TaskDetailsModal: React.FC = () => {
             type = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : 'audio/webm';
           }
           const audioBlob = new Blob(audioChunksRef.current, { type });
-          const reader = new FileReader();
-          reader.readAsDataURL(audioBlob);
-          reader.onloadend = () => {
-            const base64data = reader.result as string;
-            setEditTaskForm((prev: any) => ({ ...prev, taskVoiceUrl: base64data }));
-            setVoiceState('finished');
-            setVoiceUploading(false);
-          };
+          const ext = type.includes('mp4') ? 'mp4' : 'webm';
+          const fileRef = ref(storage, `tasks/voice/${Date.now()}_edit_voice.${ext}`);
+          await uploadBytes(fileRef, audioBlob, { contentType: type });
+          const voiceUrl = await getDownloadURL(fileRef);
+          setEditTaskForm((prev: any) => ({ ...prev, taskVoiceUrl: voiceUrl }));
+          setVoiceState('finished');
+          setVoiceUploading(false);
         } catch (err) {
-          console.error(err);
+          console.error('Failed to upload recorded audio:', err);
           setVoiceUploading(false);
         }
       };
@@ -214,16 +214,14 @@ export const TaskDetailsModal: React.FC = () => {
     if (!file) return;
     try {
       setVoiceUploading(true);
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onloadend = () => {
-        const base64data = reader.result as string;
-        setEditTaskForm((prev: any) => ({ ...prev, taskVoiceUrl: base64data }));
-        setVoiceState('finished');
-        setVoiceUploading(false);
-      };
+      const fileRef = ref(storage, `tasks/voice/${Date.now()}_${file.name}`);
+      await uploadBytes(fileRef, file);
+      const voiceUrl = await getDownloadURL(fileRef);
+      setEditTaskForm((prev: any) => ({ ...prev, taskVoiceUrl: voiceUrl }));
+      setVoiceState('finished');
+      setVoiceUploading(false);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to upload audio file:', err);
       setVoiceUploading(false);
     }
   };
@@ -258,15 +256,19 @@ export const TaskDetailsModal: React.FC = () => {
       const recorder = new MediaRecorder(stream, options);
       transferRecorderRef.current = recorder;
       recorder.ondataavailable = (e) => { if (e.data.size > 0) transferChunksRef.current.push(e.data); };
-      recorder.onstop = () => {
-        const type = recorder.mimeType || 'audio/webm';
-        const blob = new Blob(transferChunksRef.current, { type });
-        const reader = new FileReader();
-        reader.readAsDataURL(blob);
-        reader.onloadend = () => {
-          setTransferVoiceUrl(reader.result as string);
+      recorder.onstop = async () => {
+        try {
+          const type = recorder.mimeType || 'audio/webm';
+          const blob = new Blob(transferChunksRef.current, { type });
+          const ext = type.includes('mp4') ? 'mp4' : 'webm';
+          const fileRef = ref(storage, `tasks/voice/${Date.now()}_transfer_voice.${ext}`);
+          await uploadBytes(fileRef, blob, { contentType: type });
+          const voiceUrl = await getDownloadURL(fileRef);
+          setTransferVoiceUrl(voiceUrl);
           setTransferVoiceState('finished');
-        };
+        } catch (err) {
+          console.error('Failed to upload transfer voice:', err);
+        }
         stream.getTracks().forEach(t => t.stop());
       };
       recorder.start();
@@ -458,7 +460,14 @@ export const TaskDetailsModal: React.FC = () => {
                                 const updatedList = currentDetailTask.checklist!.map(c => 
                                   c.itemId === item.itemId ? { ...c, completed: !c.completed } : c
                                 );
-                                await updateTaskDetails({ taskId: currentDetailTask.taskId, checklist: updatedList });
+                                try {
+                                  await setDoc(doc(db, 'tasks', currentDetailTask.taskId), {
+                                    checklist: updatedList,
+                                    updatedAt: new Date().toISOString()
+                                  }, { merge: true });
+                                } catch (err) {
+                                  console.error('Failed to update checklist item:', err);
+                                }
                               }}
                               className="rounded bg-slate-900 border-slate-800 text-brand-500 h-4 w-4 cursor-pointer"
                             />

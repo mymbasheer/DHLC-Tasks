@@ -69,6 +69,13 @@ export interface ChecklistItem {
   completed: boolean;
 }
 
+export interface TaskClientDetails {
+  isClientRelated?: boolean;
+  clientName?: string;
+  clientPhone?: string;
+  location?: string;
+}
+
 export interface Task {
   taskId: string;
   taskTitle: string;
@@ -104,13 +111,21 @@ export interface Task {
   taskMessage?: string;
   taskVoiceUrl?: string;
   taskImageUrl?: string;
+  clientDetails?: TaskClientDetails;
 }
 
+export interface TaskType {
+  typeId: string;
+  typeName: string;
+}
 
-
-
-export interface TaskType { typeId: string; typeName: string; }  
-export interface Invitation { inviteToken: string; email: string; name: string; assignedRole: string; expiresAt: string; status: 'Pending' | 'Used'; mobileNumber?: string; createdBy?: string; } 
-
-
-
+export interface Invitation {
+  inviteToken: string;
+  email: string;
+  name: string;
+  assignedRole: string;
+  expiresAt: string;
+  status: 'Pending' | 'Used';
+  mobileNumber?: string;
+  createdBy?: string;
+}

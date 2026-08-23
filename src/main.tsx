@@ -4,12 +4,8 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { AppProvider } from './context/AppContext';
 import './styles.css';
-import { seedInitialData } from './seed-data';
 
-// We removed the old manual service worker registration in favor of vite-plugin-pwa
-
-// Seed initial Firestore configuration & base records if they don't exist
-seedInitialData();
+// Root rendering
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>

@@ -109,7 +109,7 @@ export const CreateTaskModal: React.FC = () => {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
 
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         try {
           setVoiceUploading(true);
           let type = mediaRecorder.mimeType;
@@ -117,16 +117,15 @@ export const CreateTaskModal: React.FC = () => {
             type = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : 'audio/webm';
           }
           const audioBlob = new Blob(audioChunksRef.current, { type });
-          const reader = new FileReader();
-          reader.readAsDataURL(audioBlob);
-          reader.onloadend = () => {
-            const base64data = reader.result as string;
-            setTaskForm((prev: any) => ({ ...prev, taskVoiceUrl: base64data }));
-            setVoiceState('finished');
-            setVoiceUploading(false);
-          };
+          const ext = type.includes('mp4') ? 'mp4' : 'webm';
+          const fileRef = ref(storage, `tasks/voice/${Date.now()}_voice.${ext}`);
+          await uploadBytes(fileRef, audioBlob, { contentType: type });
+          const voiceUrl = await getDownloadURL(fileRef);
+          setTaskForm((prev: any) => ({ ...prev, taskVoiceUrl: voiceUrl }));
+          setVoiceState('finished');
+          setVoiceUploading(false);
         } catch (err) {
-          console.error(err);
+          console.error('Failed to upload recorded audio:', err);
           setVoiceUploading(false);
         }
       };
@@ -164,16 +163,14 @@ export const CreateTaskModal: React.FC = () => {
 
     try {
       setVoiceUploading(true);
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onloadend = () => {
-        const base64data = reader.result as string;
-        setTaskForm((prev: any) => ({ ...prev, taskVoiceUrl: base64data }));
-        setVoiceState('finished');
-        setVoiceUploading(false);
-      };
+      const fileRef = ref(storage, `tasks/voice/${Date.now()}_${file.name}`);
+      await uploadBytes(fileRef, file);
+      const voiceUrl = await getDownloadURL(fileRef);
+      setTaskForm((prev: any) => ({ ...prev, taskVoiceUrl: voiceUrl }));
+      setVoiceState('finished');
+      setVoiceUploading(false);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to upload audio file:', err);
       setVoiceUploading(false);
     }
   };

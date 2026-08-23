@@ -1,15 +1,32 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Enforce path-based controls for uploads and tasks
-    match /tasks/{taskId}/{allPaths=**} {
-      // Only authenticated users can read task-related files
-      // Writes are limited to logged-in users who upload to tasks
+    // Tasks and task attachments (images, voice notes, documents)
+    match /tasks/{allPaths=**} {
       allow read, write: if request.auth != null;
     }
+    
+    // Comments attachments (images, voice notes, videos)
+    match /comments/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+    match /comments_video/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+    match /comments_voice/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Broadcast voice and media announcements
+    match /broadcasts/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // User profile documents and avatars
     match /users/{userId}/{allPaths=**} {
-      // Restrict users to reading and writing their own profile/private documents
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }

@@ -57,7 +57,7 @@ export const AssignmentNotification: React.FC = () => {
   const hasRungRef = useRef(false);
 
   useEffect(() => {
-    let timer: NodeJS.Timeout | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     if (assignmentNotification && !hasRungRef.current) {
       playRingTone();
       hasRungRef.current = true;
