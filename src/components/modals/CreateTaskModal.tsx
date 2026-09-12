@@ -22,6 +22,19 @@ export const CreateTaskModal: React.FC = () => {
   const [imageUploading, setImageUploading] = useState(false);
   const [voiceUploading, setVoiceUploading] = useState(false);
   const [isCreatingTask, setIsCreatingTask] = useState(false);
+  const [assigneeSearchQuery, setAssigneeSearchQuery] = useState('');
+  const [isAssigneeDropdownOpen, setIsAssigneeDropdownOpen] = useState(false);
+  const assigneeDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (assigneeDropdownRef.current && !assigneeDropdownRef.current.contains(event.target as Node)) {
+        setIsAssigneeDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -257,21 +270,100 @@ export const CreateTaskModal: React.FC = () => {
             </div>
             
             {assignmentType === 'individual' ? (
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Assignee</label>
-                <select
-                  value={taskForm.assignedTo}
-                  onChange={(e) => setTaskForm({ ...taskForm, assignedTo: e.target.value })}
-                  required={assignmentType === 'individual'}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-brand-500 text-sm"
-                >
-                  <option value="">-- Choose User --</option>
-                  {assignableUsers.map((u) => (
-                    <option key={u.uid} value={u.uid}>
-                      {u.name} {u.departmentName ? `(${u.departmentName})` : ''}
-                    </option>
-                  ))}
-                </select>
+              <div className="relative" ref={assigneeDropdownRef}>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                  Assignee {taskForm.assignedTo && <span className="text-emerald-400 font-normal">✓ Selected</span>}
+                </label>
+                
+                {taskForm.assignedTo ? (
+                  <div className="flex items-center justify-between bg-slate-900 border border-brand-500/50 rounded-xl px-3.5 py-2.5">
+                    <div className="flex items-center space-x-2 truncate">
+                      <span className="text-sm">👤</span>
+                      <div className="truncate">
+                        <p className="text-xs font-bold text-slate-100 truncate">
+                          {assignableUsers.find(u => u.uid === taskForm.assignedTo)?.name || 'Selected User'}
+                        </p>
+                        <p className="text-[10px] text-brand-400 truncate">
+                          {assignableUsers.find(u => u.uid === taskForm.assignedTo)?.departmentNames?.join(', ') || assignableUsers.find(u => u.uid === taskForm.assignedTo)?.departmentName || 'Personnel'}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTaskForm({ ...taskForm, assignedTo: '' });
+                        setAssigneeSearchQuery('');
+                        setIsAssigneeDropdownOpen(true);
+                      }}
+                      className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[10px] font-bold rounded-lg transition-colors cursor-pointer flex-shrink-0"
+                    >
+                      Change
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Type 2-3 letters to search assignee..."
+                      value={assigneeSearchQuery}
+                      onChange={(e) => {
+                        setAssigneeSearchQuery(e.target.value);
+                        setIsAssigneeDropdownOpen(true);
+                      }}
+                      onFocus={() => setIsAssigneeDropdownOpen(true)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-brand-500 text-sm placeholder-slate-500"
+                    />
+                    
+                    {isAssigneeDropdownOpen && (
+                      <div className="absolute z-50 left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl max-h-52 overflow-y-auto divide-y divide-slate-800">
+                        {assignableUsers
+                          .filter(u => {
+                            if (!assigneeSearchQuery.trim()) return true;
+                            const q = assigneeSearchQuery.toLowerCase();
+                            const deptStr = (u.departmentNames?.join(' ') || u.departmentName || '').toLowerCase();
+                            return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || deptStr.includes(q);
+                          })
+                          .map((u) => {
+                            const deptDisplay = u.departmentNames && u.departmentNames.length > 0
+                              ? u.departmentNames.join(', ')
+                              : (u.departmentName || '');
+
+                            return (
+                              <div
+                                key={u.uid}
+                                onClick={() => {
+                                  setTaskForm({ ...taskForm, assignedTo: u.uid });
+                                  setAssigneeSearchQuery(u.name);
+                                  setIsAssigneeDropdownOpen(false);
+                                }}
+                                className="p-2.5 hover:bg-slate-800/80 cursor-pointer flex items-center justify-between transition-colors"
+                              >
+                                <div className="text-left">
+                                  <p className="text-xs font-bold text-slate-100">{u.name}</p>
+                                  <p className="text-[10px] text-slate-400">{u.email}</p>
+                                </div>
+                                {deptDisplay && (
+                                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-semibold">
+                                    🏢 {deptDisplay}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        {assignableUsers.filter(u => {
+                          if (!assigneeSearchQuery.trim()) return true;
+                          const q = assigneeSearchQuery.toLowerCase();
+                          const deptStr = (u.departmentNames?.join(' ') || u.departmentName || '').toLowerCase();
+                          return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || deptStr.includes(q);
+                        }).length === 0 && (
+                          <div className="p-3 text-center text-xs text-slate-400">
+                            No matching assignees found.
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div>
@@ -291,6 +383,67 @@ export const CreateTaskModal: React.FC = () => {
                 </select>
               </div>
             )}
+          </div>
+
+          {/* Due Date & Deadline Picker */}
+          <div className="space-y-1.5 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                📅 Task Due Date & Deadline
+              </label>
+              <span className="text-[10px] text-brand-400 font-mono">
+                {taskForm.dueDate ? new Date(taskForm.dueDate).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'No deadline set'}
+              </span>
+            </div>
+            
+            <input
+              type="datetime-local"
+              value={taskForm.dueDate || ''}
+              onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })}
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-200 focus:outline-none focus:border-brand-500 text-xs font-mono"
+              required
+            />
+
+            {/* Quick Deadline Shortcut Buttons */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-[10px] text-slate-500 font-semibold">Quick Set:</span>
+              <button
+                type="button"
+                onClick={() => {
+                  const d = new Date();
+                  d.setHours(17, 0, 0, 0);
+                  const localIso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                  setTaskForm({ ...taskForm, dueDate: localIso });
+                }}
+                className="px-2 py-0.5 rounded text-[10px] bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 font-medium transition-colors cursor-pointer"
+              >
+                Today 5:00 PM
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const d = new Date(Date.now() + 86400000);
+                  d.setHours(12, 0, 0, 0);
+                  const localIso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                  setTaskForm({ ...taskForm, dueDate: localIso });
+                }}
+                className="px-2 py-0.5 rounded text-[10px] bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 font-medium transition-colors cursor-pointer"
+              >
+                Tomorrow 12:00 PM
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const d = new Date(Date.now() + 3 * 86400000);
+                  d.setHours(17, 0, 0, 0);
+                  const localIso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                  setTaskForm({ ...taskForm, dueDate: localIso });
+                }}
+                className="px-2 py-0.5 rounded text-[10px] bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 font-medium transition-colors cursor-pointer"
+              >
+                In 3 Days
+              </button>
+            </div>
           </div>
 
           {/* Preset Task Templates */}

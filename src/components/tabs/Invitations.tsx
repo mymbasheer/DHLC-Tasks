@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { User, Department } from '../../types';
 import { UserProfileModal } from '../modals/UserProfileModal';
+import { db } from '../../firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 interface PersonnelCardProps {
   personnel: User;
@@ -332,9 +334,19 @@ export const Invitations: React.FC = () => {
   const { currentTab, usersList, userRole, departmentsList, createDepartment, deleteDepartment, updateUserRights, toggleUserStatus, masterTasks, showToast } = useApp();
   const [newDeptName, setNewDeptName] = useState('');
   const [newDeptDesc, setNewDeptDesc] = useState('');
+  const [searchPersonnelQuery, setSearchPersonnelQuery] = useState('');
 
-  // Active Department Personnel view state
+  // Active Department Personnel & Client view state
   const [activeDeptModal, setActiveDeptModal] = useState<Department | null>(null);
+  const [selectedUserToAdd, setSelectedUserToAdd] = useState<string>('');
+  const [deptModalTab, setDeptModalTab] = useState<'personnel' | 'clients'>('personnel');
+
+  // Client form state
+  const [newClientName, setNewClientName] = useState('');
+  const [newClientPhone, setNewClientPhone] = useState('');
+  const [newClientEmail, setNewClientEmail] = useState('');
+  const [newClientCompany, setNewClientCompany] = useState('');
+  const [newClientNotes, setNewClientNotes] = useState('');
 
   // User Profile Modal State
   const [profileModalUser, setProfileModalUser] = useState<User | null>(null);
@@ -357,7 +369,21 @@ export const Invitations: React.FC = () => {
   if (currentTab !== 'invites') return null;
   if (userRole !== 'Admin') return null;
 
-  const personnelList = usersList.filter((u) => u.role !== 'Owner');
+  const rawPersonnelList = usersList.filter((u) => u.role !== 'Owner');
+
+  // Real-time search filter
+  const personnelList = rawPersonnelList.filter(u => {
+    if (!searchPersonnelQuery.trim()) return true;
+    const q = searchPersonnelQuery.toLowerCase();
+    const deptStr = (u.departmentNames?.join(' ') || u.departmentName || '').toLowerCase();
+    return (
+      u.name.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      (u.mobileNumber && u.mobileNumber.toLowerCase().includes(q)) ||
+      u.role.toLowerCase().includes(q) ||
+      deptStr.includes(q)
+    );
+  });
 
   const handleCreateDept = (e: React.FormEvent) => {
     e.preventDefault();
@@ -392,14 +418,13 @@ export const Invitations: React.FC = () => {
 
     let count = 0;
     for (const uid of selectedUserUids) {
-      const u = personnelList.find(item => item.uid === uid);
-      // Skip if user is an existing Admin or current logged in user
+      const u = rawPersonnelList.find(item => item.uid === uid);
       if (u && u.role !== 'Admin') {
         await updateUserRights(
           uid,
           u.name,
           u.email,
-          'User', // Always assign Personnel (User) role in bulk activation
+          'User',
           u.mobileNumber || '',
           deptId || u.departmentId,
           deptName || u.departmentName,
@@ -408,7 +433,7 @@ export const Invitations: React.FC = () => {
           bulkPerms
         );
         if (u.status !== 'Active') {
-          await toggleUserStatus(uid, 'Suspended'); // Toggles Suspended -> Active
+          await toggleUserStatus(uid, 'Suspended');
         }
         count++;
       }
@@ -416,6 +441,128 @@ export const Invitations: React.FC = () => {
 
     showToast(`Bulk updated & activated ${count} user(s) as Personnel! (Admin accounts skipped)`, 'success');
     setSelectedUserUids([]);
+  };
+
+  // Add User to current department in modal
+  const handleAddUserToDept = async (userUid: string) => {
+    if (!activeDeptModal || !userUid) return;
+    const targetUser = usersList.find(u => u.uid === userUid);
+    if (!targetUser) return;
+    
+    const existingDeptIds = targetUser.departmentIds && targetUser.departmentIds.length > 0 
+      ? [...targetUser.departmentIds] 
+      : (targetUser.departmentId ? [targetUser.departmentId] : []);
+    
+    if (!existingDeptIds.includes(activeDeptModal.departmentId)) {
+      existingDeptIds.push(activeDeptModal.departmentId);
+    }
+    
+    const existingDeptNames = targetUser.departmentNames && targetUser.departmentNames.length > 0
+      ? [...targetUser.departmentNames]
+      : (targetUser.departmentName ? [targetUser.departmentName] : []);
+      
+    if (!existingDeptNames.includes(activeDeptModal.departmentName)) {
+      existingDeptNames.push(activeDeptModal.departmentName);
+    }
+
+    await updateUserRights(
+      targetUser.uid,
+      targetUser.name,
+      targetUser.email,
+      targetUser.role,
+      targetUser.mobileNumber || '',
+      existingDeptIds[0] || activeDeptModal.departmentId,
+      existingDeptNames[0] || activeDeptModal.departmentName,
+      existingDeptIds,
+      existingDeptNames,
+      targetUser.permissions
+    );
+    showToast(`Added ${targetUser.name} to ${activeDeptModal.departmentName}`, 'success');
+    setSelectedUserToAdd('');
+  };
+
+  // Remove User from current department in modal
+  const handleRemoveUserFromDept = async (userUid: string) => {
+    if (!activeDeptModal) return;
+    const targetUser = usersList.find(u => u.uid === userUid);
+    if (!targetUser) return;
+
+    const updatedDeptIds = (targetUser.departmentIds || []).filter(id => id !== activeDeptModal.departmentId);
+    const updatedDeptNames = (targetUser.departmentNames || []).filter(name => name !== activeDeptModal.departmentName);
+
+    await updateUserRights(
+      targetUser.uid,
+      targetUser.name,
+      targetUser.email,
+      targetUser.role,
+      targetUser.mobileNumber || '',
+      updatedDeptIds[0] || '',
+      updatedDeptNames[0] || '',
+      updatedDeptIds,
+      updatedDeptNames,
+      targetUser.permissions
+    );
+    showToast(`Removed ${targetUser.name} from ${activeDeptModal.departmentName}`, 'info');
+  };
+
+  // Department Client management
+  const handleAddDepartmentClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeDeptModal || !newClientName.trim()) return;
+
+    const newClient = {
+      clientId: 'client_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      name: newClientName.trim(),
+      phone: newClientPhone.trim(),
+      email: newClientEmail.trim(),
+      company: newClientCompany.trim(),
+      notes: newClientNotes.trim(),
+      createdAt: new Date().toISOString()
+    };
+
+    const existingClients = activeDeptModal.clients || [];
+    const updatedClients = [...existingClients, newClient];
+
+    try {
+      await setDoc(doc(db, 'departments', activeDeptModal.departmentId), {
+        clients: updatedClients,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      setActiveDeptModal({
+        ...activeDeptModal,
+        clients: updatedClients
+      });
+      setNewClientName('');
+      setNewClientPhone('');
+      setNewClientEmail('');
+      setNewClientCompany('');
+      setNewClientNotes('');
+      showToast(`Client ${newClient.name} added to ${activeDeptModal.departmentName}`, 'success');
+    } catch (err) {
+      console.error('Failed to add client:', err);
+      showToast('Failed to add client to department', 'error');
+    }
+  };
+
+  const handleDeleteDepartmentClient = async (clientId: string) => {
+    if (!activeDeptModal) return;
+    const updatedClients = (activeDeptModal.clients || []).filter(c => c.clientId !== clientId);
+    try {
+      await setDoc(doc(db, 'departments', activeDeptModal.departmentId), {
+        clients: updatedClients,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      setActiveDeptModal({
+        ...activeDeptModal,
+        clients: updatedClients
+      });
+      showToast('Client removed from department', 'info');
+    } catch (err) {
+      console.error('Failed to remove client:', err);
+      showToast('Failed to remove client', 'error');
+    }
   };
 
   return (
@@ -426,7 +573,7 @@ export const Invitations: React.FC = () => {
           <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
             🏢 Department Management
           </h2>
-          <p className="text-xs text-slate-400 mt-1">Create company departments and organize personnel. Click any department name to view assigned personnel.</p>
+          <p className="text-xs text-slate-400 mt-1">Create company departments and manage team assignments. Click any department card to view members, add personnel, or manage department clients.</p>
         </div>
 
         {/* Add Department Form */}
@@ -461,12 +608,16 @@ export const Invitations: React.FC = () => {
               const uDepts = u.departmentIds && u.departmentIds.length > 0 ? u.departmentIds : (u.departmentId ? [u.departmentId] : []);
               return uDepts.includes(dept.departmentId);
             });
+            const clientCount = dept.clients?.length || 0;
 
             return (
               <div
                 key={dept.departmentId}
                 className="bg-slate-900/50 hover:bg-slate-900/80 border border-slate-800 hover:border-brand-500/50 rounded-xl p-4 flex items-center justify-between shadow-sm transition-all cursor-pointer group"
-                onClick={() => setActiveDeptModal(dept)}
+                onClick={() => {
+                  setActiveDeptModal(dept);
+                  setDeptModalTab('personnel');
+                }}
               >
                 <div>
                   <h4 className="font-bold text-slate-200 group-hover:text-brand-400 text-sm flex items-center gap-1.5 transition-colors">
@@ -474,9 +625,10 @@ export const Invitations: React.FC = () => {
                     <span className="underline decoration-dashed underline-offset-4">{dept.departmentName}</span>
                   </h4>
                   {dept.description && <p className="text-[11px] text-slate-400 mt-0.5">{dept.description}</p>}
-                  <span className="text-[10px] text-emerald-400 font-semibold block mt-1.5">
-                    👥 {assignedMembers.length} Assigned Personnel (Click to view)
-                  </span>
+                  <div className="flex items-center gap-3 mt-1.5 text-[10px] font-semibold">
+                    <span className="text-emerald-400">👥 {assignedMembers.length} Personnel</span>
+                    {clientCount > 0 && <span className="text-amber-400">👤 {clientCount} Client(s)</span>}
+                  </div>
                 </div>
                 <button
                   onClick={(e) => {
@@ -499,12 +651,31 @@ export const Invitations: React.FC = () => {
         )}
       </div>
 
+      {/* Global Personnel Search Input */}
+      <div className="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
+        <div className="w-full sm:w-auto">
+          <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+            <span>🔍</span> Search Personnel by Name or Department
+          </h3>
+          <p className="text-[11px] text-slate-400">Instant substring search across personnel cards and rights matrix overview.</p>
+        </div>
+        <div className="w-full sm:w-72">
+          <input
+            type="text"
+            placeholder="Type name, email, or dept..."
+            value={searchPersonnelQuery}
+            onChange={(e) => setSearchPersonnelQuery(e.target.value)}
+            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500 placeholder-slate-500"
+          />
+        </div>
+      </div>
+
       {/* User Rights Matrix Overview Table with Bulk Selection */}
       <div className="glass rounded-2xl p-6 space-y-4 text-left w-full border border-slate-800">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-              🛡️ User Rights Matrix Overview List
+              🛡️ User Rights Matrix Overview List ({personnelList.length})
             </h2>
             <p className="text-xs text-slate-400 mt-1">Audit permissions, activate first-time logged-in users, or bulk-assign roles and rights simultaneously.</p>
           </div>
@@ -616,7 +787,7 @@ export const Invitations: React.FC = () => {
 
       <div className="glass rounded-2xl p-6 space-y-6 text-left w-full border border-slate-800">
         <div>
-          <h2 className="text-lg font-bold text-slate-100">Personnel Rights & Roles Assignment</h2>
+          <h2 className="text-lg font-bold text-slate-100">Personnel Rights & Roles Assignment ({personnelList.length})</h2>
           <p className="text-xs text-slate-400 mt-1">Manage individual profiles, modify access levels, assign departments, and suspend/activate personnel.</p>
         </div>
 
@@ -629,66 +800,243 @@ export const Invitations: React.FC = () => {
 
         {personnelList.length === 0 && (
           <div className="p-8 text-center text-slate-500 text-xs bg-slate-900/30 rounded-2xl border border-slate-800 border-dashed">
-            No registered personnel found.
+            No personnel matching "{searchPersonnelQuery}" found.
           </div>
         )}
       </div>
 
-      {/* Department Personnel View Modal */}
+      {/* Interactive Department Personnel & Client View Modal */}
       {activeDeptModal && (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="glass rounded-2xl w-full max-w-lg p-6 space-y-5 border border-slate-800 text-left shadow-2xl">
+          <div className="glass rounded-2xl w-full max-w-2xl p-6 space-y-5 border border-slate-800 text-left shadow-2xl max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div>
                 <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
-                  <span>🏢 Personnel Assigned to {activeDeptModal.departmentName}</span>
+                  <span>🏢 {activeDeptModal.departmentName} Management</span>
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">{activeDeptModal.description || 'Department operational unit'}</p>
               </div>
               <button onClick={() => setActiveDeptModal(null)} className="text-slate-400 hover:text-slate-200 text-lg cursor-pointer">✕</button>
             </div>
 
-            <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
-              {usersList
-                .filter(u => {
-                  const uDepts = u.departmentIds && u.departmentIds.length > 0 ? u.departmentIds : (u.departmentId ? [u.departmentId] : []);
-                  return uDepts.includes(activeDeptModal.departmentId);
+            {/* Department Modal Navigation Tabs */}
+            <div className="flex items-center gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setDeptModalTab('personnel')}
+                className={`flex-grow py-2 rounded-lg transition-all ${
+                  deptModalTab === 'personnel'
+                    ? 'bg-brand-600 text-white shadow'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                👥 Assigned Personnel ({
+                  usersList.filter(u => {
+                    const uDepts = u.departmentIds && u.departmentIds.length > 0 ? u.departmentIds : (u.departmentId ? [u.departmentId] : []);
+                    return uDepts.includes(activeDeptModal.departmentId);
+                  }).length
                 })
-                .map(u => (
-                  <div key={u.uid} className="bg-slate-950 p-3.5 rounded-xl border border-slate-850 flex items-center justify-between">
-                    <div>
-                      <h4 className="font-bold text-slate-200 text-xs">{u.name}</h4>
-                      <p className="text-[10px] text-slate-400">{u.email}</p>
-                      {u.mobileNumber && (
-                        <p className="text-[10px] text-brand-400 mt-0.5">🟢 WA: {u.mobileNumber}</p>
-                      )}
-                    </div>
-                    <div className="text-right space-y-1">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-brand-500/10 text-brand-400 border border-brand-500/20 block">
-                        {u.role}
-                      </span>
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold block ${
-                        u.status === 'Active' ? 'text-emerald-400' : 'text-rose-400'
-                      }`}>
-                        {u.status || 'Active'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              {usersList.filter(u => {
-                const uDepts = u.departmentIds && u.departmentIds.length > 0 ? u.departmentIds : (u.departmentId ? [u.departmentId] : []);
-                return uDepts.includes(activeDeptModal.departmentId);
-              }).length === 0 && (
-                <p className="text-xs text-slate-500 text-center italic py-4">No personnel currently assigned to this department.</p>
-              )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeptModalTab('clients')}
+                className={`flex-grow py-2 rounded-lg transition-all ${
+                  deptModalTab === 'clients'
+                    ? 'bg-emerald-600 text-white shadow'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                👤 Department Clients / Directory ({activeDeptModal.clients?.length || 0})
+              </button>
             </div>
+
+            {/* Content Tab: Personnel Management */}
+            {deptModalTab === 'personnel' && (
+              <div className="space-y-4 overflow-y-auto pr-1 flex-grow">
+                {/* Add User to Department Selector */}
+                <div className="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 space-y-2">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                    ➕ Assign Personnel to this Department
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={selectedUserToAdd}
+                      onChange={(e) => setSelectedUserToAdd(e.target.value)}
+                      className="flex-grow bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500"
+                    >
+                      <option value="">-- Choose User to Add --</option>
+                      {usersList
+                        .filter(u => {
+                          const uDepts = u.departmentIds && u.departmentIds.length > 0 ? u.departmentIds : (u.departmentId ? [u.departmentId] : []);
+                          return !uDepts.includes(activeDeptModal.departmentId) && u.role !== 'Owner';
+                        })
+                        .map(u => (
+                          <option key={u.uid} value={u.uid}>
+                            {u.name} ({u.email})
+                          </option>
+                        ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => handleAddUserToDept(selectedUserToAdd)}
+                      disabled={!selectedUserToAdd}
+                      className="px-4 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex-shrink-0"
+                    >
+                      + Add to Dept
+                    </button>
+                  </div>
+                </div>
+
+                {/* Assigned Personnel List */}
+                <div className="space-y-2.5">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Current Members</h4>
+                  <div className="space-y-2">
+                    {usersList
+                      .filter(u => {
+                        const uDepts = u.departmentIds && u.departmentIds.length > 0 ? u.departmentIds : (u.departmentId ? [u.departmentId] : []);
+                        return uDepts.includes(activeDeptModal.departmentId);
+                      })
+                      .map(u => (
+                        <div key={u.uid} className="bg-slate-950 p-3 rounded-xl border border-slate-850 flex items-center justify-between">
+                          <div>
+                            <h4 className="font-bold text-slate-200 text-xs">{u.name}</h4>
+                            <p className="text-[10px] text-slate-400">{u.email}</p>
+                            {u.mobileNumber && (
+                              <p className="text-[10px] text-brand-400 mt-0.5">🟢 WA: {u.mobileNumber}</p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-brand-500/10 text-brand-400 border border-brand-500/20">
+                              {u.role}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveUserFromDept(u.uid)}
+                              className="px-2.5 py-1 bg-rose-600/10 hover:bg-rose-600 text-rose-400 hover:text-white rounded-lg text-[10px] font-bold transition-colors cursor-pointer"
+                              title="Remove from Department"
+                            >
+                              ✕ Remove
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    {usersList.filter(u => {
+                      const uDepts = u.departmentIds && u.departmentIds.length > 0 ? u.departmentIds : (u.departmentId ? [u.departmentId] : []);
+                      return uDepts.includes(activeDeptModal.departmentId);
+                    }).length === 0 && (
+                      <p className="text-xs text-slate-500 text-center italic py-4">No personnel currently assigned to this department.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Content Tab: Department Clients Management */}
+            {deptModalTab === 'clients' && (
+              <div className="space-y-4 overflow-y-auto pr-1 flex-grow">
+                {/* Add Client Form */}
+                <form onSubmit={handleAddDepartmentClient} className="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 space-y-3">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                    ➕ Add Client to {activeDeptModal.departmentName}
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      placeholder="Client / Contact Name *"
+                      value={newClientName}
+                      onChange={(e) => setNewClientName(e.target.value)}
+                      required
+                      className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 font-semibold"
+                    />
+                    <input
+                      type="text"
+                      placeholder="WhatsApp Mobile Number (+91...)"
+                      value={newClientPhone}
+                      onChange={(e) => setNewClientPhone(e.target.value)}
+                      className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+                    />
+                    <input
+                      type="email"
+                      placeholder="Client Email Address"
+                      value={newClientEmail}
+                      onChange={(e) => setNewClientEmail(e.target.value)}
+                      className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Company / Organization Name"
+                      value={newClientCompany}
+                      onChange={(e) => setNewClientCompany(e.target.value)}
+                      className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Notes / Address / Service Details (Optional)"
+                    value={newClientNotes}
+                    onChange={(e) => setNewClientNotes(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+                  />
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow cursor-pointer"
+                    >
+                      + Save Department Client
+                    </button>
+                  </div>
+                </form>
+
+                {/* Existing Clients List */}
+                <div className="space-y-2.5">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Department Client Directory</h4>
+                  <div className="space-y-2">
+                    {(activeDeptModal.clients || []).map(client => (
+                      <div key={client.clientId} className="bg-slate-950 p-3 rounded-xl border border-slate-850 flex items-center justify-between">
+                        <div>
+                          <h4 className="font-bold text-slate-200 text-xs flex items-center gap-1.5">
+                            <span>👤 {client.name}</span>
+                            {client.company && <span className="text-[10px] text-emerald-400 font-normal">({client.company})</span>}
+                          </h4>
+                          <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-400 mt-1">
+                            {client.phone && (
+                              <a
+                                href={`https://wa.me/${client.phone.replace(/[^0-9]/g, '')}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-emerald-400 hover:underline flex items-center gap-1"
+                              >
+                                🟢 WA: {client.phone}
+                              </a>
+                            )}
+                            {client.email && <span>📧 {client.email}</span>}
+                            {client.notes && <span className="text-slate-500 italic">📝 {client.notes}</span>}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteDepartmentClient(client.clientId)}
+                          className="px-2.5 py-1 bg-rose-600/10 hover:bg-rose-600 text-rose-400 hover:text-white rounded-lg text-[10px] font-bold transition-colors cursor-pointer"
+                          title="Delete Client"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    ))}
+                    {(!activeDeptModal.clients || activeDeptModal.clients.length === 0) && (
+                      <p className="text-xs text-slate-500 text-center italic py-4">No clients added for this department yet.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="pt-2 border-t border-slate-800 flex justify-end">
               <button
                 onClick={() => setActiveDeptModal(null)}
                 className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl text-xs transition-colors cursor-pointer"
               >
-                Close View
+                Done
               </button>
             </div>
           </div>

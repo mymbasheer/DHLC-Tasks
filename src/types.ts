@@ -10,11 +10,22 @@ export interface UserPermissions {
   canBroadcast?: boolean;
 }
 
+export interface DepartmentClient {
+  clientId: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  company?: string;
+  notes?: string;
+  createdAt?: string;
+}
+
 export interface Department {
   departmentId: string;
   departmentName: string;
   description?: string;
   createdAt: string;
+  clients?: DepartmentClient[];
 }
 
 export interface User {

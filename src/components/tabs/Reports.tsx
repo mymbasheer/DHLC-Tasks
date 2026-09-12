@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 
 export const Reports: React.FC = () => {
@@ -16,6 +16,8 @@ export const Reports: React.FC = () => {
     deleteTask
   } = useApp();
 
+  const [printMode, setPrintMode] = useState<'custom_filtered' | 'complete_department'>('custom_filtered');
+
   if (currentTab !== 'reports') return null;
 
   const handleResetFilters = () => {
@@ -27,6 +29,24 @@ export const Reports: React.FC = () => {
       dateTo: ''
     });
   };
+
+  const handlePrintFilteredReport = () => {
+    setPrintMode('custom_filtered');
+    setTimeout(() => {
+      window.print();
+    }, 50);
+  };
+
+  const handlePrintCompleteDeptReport = () => {
+    setPrintMode('complete_department');
+    setTimeout(() => {
+      window.print();
+    }, 50);
+  };
+
+  const activeDeptName = departmentsList.find(d => d.departmentId === reportFilters.departmentId)?.departmentName || 'All Departments';
+  const activeAssigneeName = usersList.find(u => u.uid === reportFilters.assigneeId)?.name || 'All Personnel';
+  const activeStatusName = reportFilters.status || 'All Statuses';
 
   return (
     <div className="space-y-6 text-left">
@@ -92,18 +112,22 @@ export const Reports: React.FC = () => {
 
       {/* Printable Official Header (Shown only during printing) */}
       <div className="hidden print:block mb-2 border-b-2 border-black pb-2 text-black">
-        <h1 className="text-xl font-bold uppercase tracking-wider">DHLC TASKS — DEPARTMENT WORK ORDERS & TASKS MASTER REPORT</h1>
+        <h1 className="text-xl font-bold uppercase tracking-wider">
+          {printMode === 'custom_filtered' 
+            ? `DHLC TASKS — CUSTOM FILTERED REPORT: ${activeStatusName.toUpperCase()} (${activeDeptName.toUpperCase()})`
+            : 'DHLC TASKS — DEPARTMENT WORK ORDERS & TASKS MASTER REPORT'}
+        </h1>
         <div className="flex justify-between text-[10px] mt-1 pt-1 border-t border-gray-400">
-          <span>Generated: {new Date().toLocaleString()} | Total Tasks: {filteredReportTasks.length}</span>
-          <span>Filter Status: {reportFilters.status || 'All'} | Dept: {departmentsList.find(d => d.departmentId === reportFilters.departmentId)?.departmentName || 'All'}</span>
+          <span>Generated: {new Date().toLocaleString()} | Total Filtered Tasks: {filteredReportTasks.length}</span>
+          <span>Department: <strong>{activeDeptName}</strong> | Status: <strong>{activeStatusName}</strong> | Assignee: <strong>{activeAssigneeName}</strong></span>
         </div>
       </div>
 
       {/* Screen Reports Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 print:hidden">
         <div>
-          <h2 className="text-xl font-bold">Reports & Auditing Desk</h2>
-          <p className="text-xs text-slate-400">Run real-time filters across all company tasks, departments, and operational history.</p>
+          <h2 className="text-xl font-bold">Reports & Custom Query Builder</h2>
+          <p className="text-xs text-slate-400">Run real-time filtered queries across departments, statuses, and print custom tailored reports.</p>
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
@@ -126,31 +150,76 @@ export const Reports: React.FC = () => {
               const encodedUri = encodeURI(csvContent);
               const link = document.createElement('a');
               link.setAttribute('href', encodedUri);
-              link.setAttribute('download', `dhlc-work-orders-${new Date().toISOString().split('T')[0]}.csv`);
+              link.setAttribute('download', `dhlc-report-${new Date().toISOString().split('T')[0]}.csv`);
               document.body.appendChild(link);
               link.click();
               document.body.removeChild(link);
             }}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs transition-colors flex items-center space-x-1.5 shadow-md cursor-pointer"
+            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-750 text-slate-200 font-bold rounded-xl text-xs transition-colors flex items-center space-x-1.5 shadow-md cursor-pointer"
           >
-            <span>📥 Export CSV / Excel</span>
+            <span>📥 Export CSV</span>
           </button>
 
+          {/* Dedicated Custom Filtered Report Print */}
           <button
-            onClick={() => window.print()}
-            className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl text-xs transition-colors flex items-center space-x-2 shadow-md cursor-pointer"
+            onClick={handlePrintFilteredReport}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl text-xs transition-colors flex items-center space-x-1.5 shadow-md shadow-emerald-600/20 cursor-pointer"
+          >
+            <span>🖨️ Print Filtered Custom Report</span>
+          </button>
+
+          {/* Full Complete Department Master Print */}
+          <button
+            onClick={handlePrintCompleteDeptReport}
+            className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl text-xs transition-colors flex items-center space-x-1.5 shadow-md shadow-brand-600/20 cursor-pointer"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
             </svg>
-            <span>Print Complete Department Report (Landscape)</span>
+            <span>Print Complete Department Report</span>
           </button>
         </div>
       </div>
 
       {/* Report Filters Card */}
       <div className="glass p-5 rounded-xl space-y-4 print:hidden">
-        <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider">Report Filters</h3>
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-1 border-b border-slate-800/80">
+          <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider">Report Filters</h3>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[10px] text-slate-500 font-semibold uppercase">Quick Presets:</span>
+            <button
+              type="button"
+              onClick={() => setReportFilters({ ...reportFilters, status: 'Pending' })}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${reportFilters.status === 'Pending' ? 'bg-amber-500 text-slate-950 font-black shadow' : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'}`}
+            >
+              ⏳ Pending Only
+            </button>
+            <button
+              type="button"
+              onClick={() => setReportFilters({ ...reportFilters, status: 'In_Progress' })}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${reportFilters.status === 'In_Progress' ? 'bg-blue-500 text-white font-black shadow' : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'}`}
+            >
+              🔄 In Progress
+            </button>
+            <button
+              type="button"
+              onClick={() => setReportFilters({ ...reportFilters, status: 'Completed' })}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${reportFilters.status === 'Completed' ? 'bg-emerald-500 text-slate-950 font-black shadow' : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'}`}
+            >
+              ✅ Completed
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const todayStr = new Date().toISOString().split('T')[0];
+                setReportFilters({ ...reportFilters, dateFrom: todayStr, dateTo: todayStr });
+              }}
+              className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition-all cursor-pointer"
+            >
+              📅 Today Only
+            </button>
+          </div>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 text-xs">
           {/* Date From */}
           <div>

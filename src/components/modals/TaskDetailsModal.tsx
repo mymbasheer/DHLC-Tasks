@@ -59,8 +59,48 @@ export const TaskDetailsModal: React.FC = () => {
   const [imageUploading, setImageUploading] = useState(false);
   const [voiceUploading, setVoiceUploading] = useState(false);
   const [voiceState, setVoiceState] = useState<'idle' | 'recording' | 'finished'>('idle');
+  const [newChecklistTitle, setNewChecklistTitle] = useState('');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+
+  const addEditChecklistItem = () => {
+    if (!newChecklistTitle.trim()) return;
+    const currentChecklist = editTaskForm.checklist || [];
+    const newItem = {
+      itemId: 'item_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      title: newChecklistTitle.trim(),
+      completed: false
+    };
+    setEditTaskForm({
+      ...editTaskForm,
+      checklist: [...currentChecklist, newItem]
+    });
+    setNewChecklistTitle('');
+  };
+
+  const removeEditChecklistItem = (itemId: string) => {
+    const currentChecklist = editTaskForm.checklist || [];
+    setEditTaskForm({
+      ...editTaskForm,
+      checklist: currentChecklist.filter((item: any) => item.itemId !== itemId)
+    });
+  };
+
+  const updateEditChecklistItem = (itemId: string, title: string) => {
+    const currentChecklist = editTaskForm.checklist || [];
+    setEditTaskForm({
+      ...editTaskForm,
+      checklist: currentChecklist.map((item: any) => item.itemId === itemId ? { ...item, title } : item)
+    });
+  };
+
+  const toggleEditChecklistItem = (itemId: string) => {
+    const currentChecklist = editTaskForm.checklist || [];
+    setEditTaskForm({
+      ...editTaskForm,
+      checklist: currentChecklist.map((item: any) => item.itemId === itemId ? { ...item, completed: !item.completed } : item)
+    });
+  };
 
   const handleWhatsAppShare = () => {
     if (!currentDetailTask) return;
@@ -637,91 +677,93 @@ export const TaskDetailsModal: React.FC = () => {
                 </div>
               )}
 
-              {/* Transfer task */}
-              <div className="bg-slate-955/40 p-4 border border-slate-800 rounded-xl space-y-3">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400">🔀 Transfer Task</h4>
-                <div className="space-y-3">
-                  <select
-                    value={selectedAssignee}
-                    onChange={(e) => setSelectedAssignee(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-xs text-slate-300 focus:outline-none focus:border-brand-500"
-                  >
-                    <option value="">-- Select User --</option>
-                    {usersList
-                      .filter(u => u.uid !== currentDetailTask.assignedTo && u.role !== 'Pending')
-                      .map((u) => (
-                        <option key={u.uid} value={u.uid}>
-                          {u.name}
-                        </option>
-                      ))}
-                  </select>
+              {/* Transfer task (Admin Only) */}
+              {userRole === 'Admin' && (
+                <div className="bg-slate-955/40 p-4 border border-slate-800 rounded-xl space-y-3">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400">🔀 Transfer Task</h4>
+                  <div className="space-y-3">
+                    <select
+                      value={selectedAssignee}
+                      onChange={(e) => setSelectedAssignee(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-xs text-slate-300 focus:outline-none focus:border-brand-500"
+                    >
+                      <option value="">-- Select User --</option>
+                      {usersList
+                        .filter(u => u.uid !== currentDetailTask.assignedTo && u.role !== 'Pending')
+                        .map((u) => (
+                          <option key={u.uid} value={u.uid}>
+                            {u.name}
+                          </option>
+                        ))}
+                    </select>
 
-                  {selectedAssignee && (
-                    <>
-                      {/* Reason type toggle */}
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-slate-500 uppercase font-semibold">Reason (Optional):</span>
-                        <button
-                          onClick={() => setTransferReasonType('text')}
-                          className={`px-2.5 py-1 rounded text-[10px] font-semibold border transition-all ${transferReasonType === 'text' ? 'bg-brand-600 border-brand-500 text-white' : 'bg-slate-900 border-slate-700 text-slate-400'}`}
-                        >
-                          ✏️ Text
-                        </button>
-                        <button
-                          onClick={() => setTransferReasonType('voice')}
-                          className={`px-2.5 py-1 rounded text-[10px] font-semibold border transition-all ${transferReasonType === 'voice' ? 'bg-brand-600 border-brand-500 text-white' : 'bg-slate-900 border-slate-700 text-slate-400'}`}
-                        >
-                          🎤 Voice
-                        </button>
-                      </div>
-
-                      {transferReasonType === 'text' ? (
-                        <textarea
-                          placeholder="Reason for transfer (optional)..."
-                          value={transferReason}
-                          onChange={(e) => setTransferReason(e.target.value)}
-                          rows={2}
-                          className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-slate-350 focus:outline-none focus:border-brand-500 placeholder-slate-500"
-                        />
-                      ) : (
-                        <div className="space-y-2">
-                          {transferVoiceState === 'idle' && (
-                            <button
-                              onClick={startTransferVoice}
-                              className="w-full py-2 border border-dashed border-slate-700 rounded-lg text-xs text-slate-400 hover:border-slate-500 hover:text-slate-200 transition-colors"
-                            >
-                              🎤 Hold to Record Voice Reason
-                            </button>
-                          )}
-                          {transferVoiceState === 'recording' && (
-                            <div className="flex items-center justify-between bg-rose-500/10 border border-rose-500/20 rounded-lg p-2 animate-pulse">
-                              <span className="text-[11px] text-rose-400 flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full bg-rose-500 inline-block" /> Recording...
-                              </span>
-                              <button onClick={stopTransferVoice} className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold rounded transition-colors">
-                                Stop
-                              </button>
-                            </div>
-                          )}
-                          {transferVoiceState === 'finished' && transferVoiceUrl && (
-                            <div className="flex items-center gap-2 bg-slate-900/60 border border-slate-800 rounded-lg p-2">
-                              <audio src={transferVoiceUrl} controls className="h-6 flex-grow text-xs" />
-                              <button onClick={clearTransferVoice} className="text-rose-500 hover:text-rose-400 font-bold px-1">✕</button>
-                            </div>
-                          )}
+                    {selectedAssignee && (
+                      <>
+                        {/* Reason type toggle */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-slate-500 uppercase font-semibold">Reason (Optional):</span>
+                          <button
+                            onClick={() => setTransferReasonType('text')}
+                            className={`px-2.5 py-1 rounded text-[10px] font-semibold border transition-all ${transferReasonType === 'text' ? 'bg-brand-600 border-brand-500 text-white' : 'bg-slate-900 border-slate-700 text-slate-400'}`}
+                          >
+                            ✏️ Text
+                          </button>
+                          <button
+                            onClick={() => setTransferReasonType('voice')}
+                            className={`px-2.5 py-1 rounded text-[10px] font-semibold border transition-all ${transferReasonType === 'voice' ? 'bg-brand-600 border-brand-500 text-white' : 'bg-slate-900 border-slate-700 text-slate-400'}`}
+                          >
+                            🎤 Voice
+                          </button>
                         </div>
-                      )}
 
-                      <button
-                        onClick={handleTransferConfirm}
-                        className="w-full h-10 flex items-center justify-center bg-brand-600 hover:bg-brand-555 text-white rounded-lg text-[10px] font-semibold transition-all"
-                      >
-                        Confirm Transfer
-                      </button>
-                    </>
-                  )}
+                        {transferReasonType === 'text' ? (
+                          <textarea
+                            placeholder="Reason for transfer (optional)..."
+                            value={transferReason}
+                            onChange={(e) => setTransferReason(e.target.value)}
+                            rows={2}
+                            className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-slate-350 focus:outline-none focus:border-brand-500 placeholder-slate-500"
+                          />
+                        ) : (
+                          <div className="space-y-2">
+                            {transferVoiceState === 'idle' && (
+                              <button
+                                onClick={startTransferVoice}
+                                className="w-full py-2 border border-dashed border-slate-700 rounded-lg text-xs text-slate-400 hover:border-slate-500 hover:text-slate-200 transition-colors"
+                              >
+                                🎤 Hold to Record Voice Reason
+                              </button>
+                            )}
+                            {transferVoiceState === 'recording' && (
+                              <div className="flex items-center justify-between bg-rose-500/10 border border-rose-500/20 rounded-lg p-2 animate-pulse">
+                                <span className="text-[11px] text-rose-400 flex items-center gap-1.5">
+                                  <span className="w-2 h-2 rounded-full bg-rose-500 inline-block" /> Recording...
+                                </span>
+                                <button onClick={stopTransferVoice} className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold rounded transition-colors">
+                                  Stop
+                                </button>
+                              </div>
+                            )}
+                            {transferVoiceState === 'finished' && transferVoiceUrl && (
+                              <div className="flex items-center gap-2 bg-slate-900/60 border border-slate-800 rounded-lg p-2">
+                                <audio src={transferVoiceUrl} controls className="h-6 flex-grow text-xs" />
+                                <button onClick={clearTransferVoice} className="text-rose-500 hover:text-rose-400 font-bold px-1">✕</button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <button
+                          onClick={handleTransferConfirm}
+                          className="w-full h-10 flex items-center justify-center bg-brand-600 hover:bg-brand-555 text-white rounded-lg text-[10px] font-semibold transition-all"
+                        >
+                          Confirm Transfer
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Progress Controls */}
               <div className="bg-slate-955/40 p-4 border border-slate-800 rounded-xl space-y-4 text-xs">
@@ -965,6 +1007,89 @@ export const TaskDetailsModal: React.FC = () => {
                     </label>
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* Due Date & Deadline */}
+            <div className="space-y-1.5 bg-slate-900/40 p-3.5 rounded-xl border border-slate-800">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                  📅 Task Due Date & Deadline
+                </label>
+                <span className="text-[10px] text-brand-400 font-mono">
+                  {editTaskForm.dueDate ? new Date(editTaskForm.dueDate).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'No deadline set'}
+                </span>
+              </div>
+              <input
+                type="datetime-local"
+                value={editTaskForm.dueDate || ''}
+                onChange={(e) => setEditTaskForm({ ...editTaskForm, dueDate: e.target.value })}
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-200 focus:outline-none focus:border-brand-500 text-xs font-mono"
+              />
+            </div>
+
+            {/* Work Order Checklist Builder / Editor */}
+            <div className="space-y-2.5 bg-slate-950/80 p-3.5 rounded-xl border border-slate-800">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                  📋 Work Order Checklist ({editTaskForm.checklist?.length || 0})
+                </label>
+                <span className="text-[10px] text-slate-400">Click checkboxes to toggle or edit titles directly</span>
+              </div>
+              
+              {/* Existing Checklist Items */}
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {(editTaskForm.checklist || []).map((item: any) => (
+                  <div key={item.itemId} className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-2 rounded-lg">
+                    <input
+                      type="checkbox"
+                      checked={item.completed}
+                      onChange={() => toggleEditChecklistItem(item.itemId)}
+                      className="rounded bg-slate-800 border-slate-700 text-brand-500 h-4 w-4 cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={item.title}
+                      onChange={(e) => updateEditChecklistItem(item.itemId, e.target.value)}
+                      className={`flex-grow bg-transparent border-none text-xs focus:outline-none focus:ring-1 focus:ring-brand-500/50 rounded px-1 ${item.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeEditChecklistItem(item.itemId)}
+                      className="text-rose-500 hover:text-rose-400 text-xs px-1.5 py-0.5 rounded hover:bg-rose-500/10 transition-colors cursor-pointer"
+                      title="Delete checklist item"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                ))}
+                {(!editTaskForm.checklist || editTaskForm.checklist.length === 0) && (
+                  <p className="text-[11px] text-slate-500 italic py-1">No checklist items in this work order.</p>
+                )}
+              </div>
+
+              {/* Add new checklist item */}
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="text"
+                  value={newChecklistTitle}
+                  onChange={(e) => setNewChecklistTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addEditChecklistItem();
+                    }
+                  }}
+                  placeholder="Add new checklist item..."
+                  className="flex-grow bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500 placeholder-slate-500"
+                />
+                <button
+                  type="button"
+                  onClick={addEditChecklistItem}
+                  className="px-3 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold transition-colors flex-shrink-0 cursor-pointer"
+                >
+                  + Add Item
+                </button>
               </div>
             </div>
 

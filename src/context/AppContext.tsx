@@ -1689,6 +1689,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         dateKey: editTaskForm.dueDate ? editTaskForm.dueDate.split('T')[0] : editTaskForm.dateKey,
 
         comments: commentsCopy,
+        checklist: editTaskForm.checklist || [],
         updatedAt: new Date().toISOString(),
         reminderAt,
         reminderAlerted,
