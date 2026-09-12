@@ -46,16 +46,21 @@ export const BroadcastModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-955/80 backdrop-blur-sm p-2 sm:p-4 flex items-start sm:items-center justify-center">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-5 sm:p-6 my-auto shadow-2xl relative space-y-5 text-left">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-955/80 backdrop-blur-sm p-3 sm:p-6 flex items-center justify-center">
+      <div className="bg-slate-900 border border-slate-850 rounded-3xl w-full max-w-md p-6 sm:p-7 shadow-2xl relative space-y-5 text-left">
         <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">📢</span>
-            <h3 className="text-lg font-bold text-white">Broadcast Alert</h3>
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center text-lg">
+              📢
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white font-sans">Broadcast Announcement</h3>
+              <p className="text-[11px] text-slate-400">Instant real-time alert to all personnel</p>
+            </div>
           </div>
           <button
             onClick={handleClose}
-            className="w-7 h-7 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
           >
             ✕
           </button>

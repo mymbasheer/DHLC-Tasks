@@ -240,18 +240,29 @@ export const CompletedTasks: React.FC = () => {
 
       {/* Print View: Grouped by Department */}
       <div className="hidden print:block space-y-6 text-left">
+        <div className="print-header flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">DHLC Completed Tasks & Operational History Report</h1>
+            <p className="text-xs text-slate-600 mt-1">Scope: {adminScope === 'all' ? 'All Organization Completed Tasks (Admin)' : 'My Finished Tasks'} | Total Completed: {displayedTasks.length}</p>
+          </div>
+          <div className="text-right text-xs text-slate-600">
+            <p className="font-mono font-bold">Generated: {new Date().toISOString().split('T')[0]}</p>
+          </div>
+        </div>
+
         {groupedTasksByDepartment.map(group => (
-          <div key={group.deptName} className="space-y-2">
-            <h3 className="text-base font-bold uppercase tracking-wider text-black border-b-2 border-black pb-1">
-              🏢 Department: {group.deptName} ({group.tasks.length} Completed Tasks)
+          <div key={group.deptName} className="space-y-2 mb-6">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-400 pb-1 flex items-center justify-between">
+              <span>🏢 Department: {group.deptName}</span>
+              <span className="text-xs font-mono font-normal">({group.tasks.length} completed tasks)</span>
             </h3>
-            <table className="w-full text-left text-xs border-collapse border border-black text-black">
+            <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-gray-200 border-b border-black">
-                  <th className="p-2 border border-black">Task Title</th>
-                  <th className="p-2 border border-black">Target / Assignee</th>
-                  <th className="p-2 border border-black">Completed Date</th>
-                  <th className="p-2 border border-black">Details / Instructions</th>
+                <tr>
+                  <th style={{ width: '25%' }}>Task Title / Ref</th>
+                  <th style={{ width: '20%' }}>Target / Assignee</th>
+                  <th style={{ width: '18%' }}>Completion Date</th>
+                  <th style={{ width: '37%' }}>Details / Instructions</th>
                 </tr>
               </thead>
               <tbody>
@@ -259,11 +270,11 @@ export const CompletedTasks: React.FC = () => {
                   const firstComm = t.comments && t.comments.length > 0 ? t.comments[0] : null;
                   const msg = firstComm?.text || t.taskMessage || 'No text description';
                   return (
-                    <tr key={t.taskId} className="border-b border-black">
-                      <td className="p-2 border border-black font-bold">{t.taskTitle}</td>
-                      <td className="p-2 border border-black">{t.assignedDepartmentName ? `🏢 ${t.assignedDepartmentName}` : (t.assignedToName || 'Individual')}</td>
-                      <td className="p-2 border border-black font-mono">{(t.completedAt || t.updatedAt || '').split('T')[0]}</td>
-                      <td className="p-2 border border-black whitespace-pre-wrap">{msg}</td>
+                    <tr key={t.taskId}>
+                      <td className="font-bold text-slate-900">{t.taskTitle}</td>
+                      <td>{t.assignedDepartmentName ? `🏢 ${t.assignedDepartmentName}` : (t.assignedToName || 'Individual')}</td>
+                      <td className="font-mono">{(t.completedAt || t.updatedAt || '').split('T')[0]}</td>
+                      <td className="whitespace-pre-wrap">{msg}</td>
                     </tr>
                   );
                 })}

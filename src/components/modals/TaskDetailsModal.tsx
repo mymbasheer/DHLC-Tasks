@@ -349,8 +349,8 @@ export const TaskDetailsModal: React.FC = () => {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-2 sm:p-4 bg-slate-50/40 backdrop-blur-xs">
-      <div className="glass rounded-2xl w-full max-w-4xl p-4 sm:p-6 space-y-4 sm:space-y-6 flex flex-col max-h-[95vh] sm:max-h-[90vh]">
+    <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-2 sm:p-4 bg-slate-955/80 backdrop-blur-sm">
+      <div className="bg-slate-900 border border-slate-850 rounded-3xl w-full max-w-4xl p-4 sm:p-6 space-y-4 sm:space-y-6 flex flex-col max-h-[95vh] sm:max-h-[90vh] shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
           <div>

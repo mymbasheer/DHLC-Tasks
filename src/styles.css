@@ -112,36 +112,73 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
-  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.glass-panel {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .glass-hover {
-  @apply transition-all duration-300;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .glass-hover:hover {
-  border-color: rgba(59, 130, 246, 0.3);
+  border-color: rgba(59, 130, 246, 0.4);
   background: var(--glass-bg);
-  opacity: 0.95;
+  box-shadow: 0 8px 25px -4px rgba(59, 130, 246, 0.1);
+  transform: translateY(-1px);
+}
+
+/* ─── Badges & Status Pills ──────────────────────────────────── */
+.badge-urgent {
+  background: rgba(244, 63, 94, 0.1);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.25);
+}
+.badge-high {
+  background: rgba(249, 115, 22, 0.1);
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.25);
+}
+.badge-medium {
+  background: rgba(245, 158, 11, 0.1);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+.badge-normal {
+  background: rgba(16, 185, 129, 0.1);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
 /* ─── Touch Targets ─────────────────────────────────────────── */
 .touch-target {
-  @apply min-w-[48px] min-h-[48px] flex items-center justify-center;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ─── Scrollbar ─────────────────────────────────────────────── */
-::-webkit-scrollbar         { width: 6px; height: 6px; }
+::-webkit-scrollbar         { width: 7px; height: 7px; }
 ::-webkit-scrollbar-track   { background: transparent; }
 ::-webkit-scrollbar-thumb   {
-  background: #cbd5e1;
+  background: rgba(148, 163, 184, 0.4);
   border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
-::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.7); }
 
 /* ─── Selection highlight ───────────────────────────────────── */
 ::selection {
-  background: rgba(59, 130, 246, 0.2);
-  color: #1e3a8a;
+  background: rgba(59, 130, 246, 0.25);
+  color: #2563eb;
 }
 
 /* ─── Focus outlines ────────────────────────────────────────── */
@@ -152,9 +189,14 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ─── Print Media Styles ─────────────────────────────────────── */
 @media print {
+  @page {
+    margin: 1.2cm;
+    size: auto;
+  }
   body {
     background: #ffffff !important;
-    color: #000000 !important;
+    color: #0f172a !important;
+    font-size: 10pt;
   }
   aside, nav, header, button, .print\:hidden {
     display: none !important;
@@ -162,7 +204,7 @@ h1, h2, h3, h4, h5, h6 {
   .print\:block {
     display: block !important;
   }
-  .glass {
+  .glass, .glass-panel {
     background: #ffffff !important;
     border: none !important;
     box-shadow: none !important;
@@ -170,15 +212,26 @@ h1, h2, h3, h4, h5, h6 {
   table {
     width: 100% !important;
     border-collapse: collapse !important;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
   }
   th, td {
-    border: 1px solid #000000 !important;
-    color: #000000 !important;
-    padding: 6px 10px !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+    padding: 8px 12px !important;
+    text-align: left;
   }
   th {
-    background-color: #f1f5f9 !important;
-    font-weight: bold !important;
+    background-color: #f8fafc !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    font-size: 8pt;
+    letter-spacing: 0.05em;
+  }
+  .print-header {
+    border-bottom: 2px solid #0f172a;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
   }
 }
 

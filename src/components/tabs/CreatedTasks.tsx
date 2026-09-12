@@ -522,20 +522,31 @@ export const CreatedTasks: React.FC = () => {
 
       {/* Print View: Grouped by Department */}
       <div className="hidden print:block space-y-6 text-left">
+        <div className="print-header flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">DHLC Operations Created Tasks Report</h1>
+            <p className="text-xs text-slate-600 mt-1">Scope: {adminScope === 'all' ? 'All Organization Tasks (Admin)' : 'Created by Me'} | Active Filter: {activeStatsFilter} | Target: {targetFilter}</p>
+          </div>
+          <div className="text-right text-xs text-slate-600">
+            <p className="font-mono font-bold">Total Records: {displayedTasks.length}</p>
+          </div>
+        </div>
+
         {groupedTasksByDepartment.map(group => (
-          <div key={group.deptName} className="space-y-2">
-            <h3 className="text-base font-bold uppercase tracking-wider text-black border-b-2 border-black pb-1">
-              🏢 Department: {group.deptName} ({group.tasks.length} Tasks)
+          <div key={group.deptName} className="space-y-2 mb-6">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-400 pb-1 flex items-center justify-between">
+              <span>🏢 Department: {group.deptName}</span>
+              <span className="text-xs font-mono font-normal">({group.tasks.length} tasks)</span>
             </h3>
-            <table className="w-full text-left text-xs border-collapse border border-black text-black">
+            <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-gray-200 border-b border-black">
-                  <th className="p-2 border border-black">Work Order Title</th>
-                  <th className="p-2 border border-black">Target / Assignee</th>
-                  <th className="p-2 border border-black">Urgency</th>
-                  <th className="p-2 border border-black">Status</th>
-                  <th className="p-2 border border-black">Due Date</th>
-                  <th className="p-2 border border-black">Instructions / Message</th>
+                <tr>
+                  <th style={{ width: '22%' }}>Work Order Title</th>
+                  <th style={{ width: '18%' }}>Target / Assignee</th>
+                  <th style={{ width: '10%' }}>Priority</th>
+                  <th style={{ width: '12%' }}>Status</th>
+                  <th style={{ width: '15%' }}>Due Date</th>
+                  <th style={{ width: '23%' }}>Instructions / Scope</th>
                 </tr>
               </thead>
               <tbody>
@@ -543,13 +554,15 @@ export const CreatedTasks: React.FC = () => {
                   const firstComm = t.comments && t.comments.length > 0 ? t.comments[0] : null;
                   const msg = firstComm?.text || t.taskMessage || 'No text description';
                   return (
-                    <tr key={t.taskId} className="border-b border-black">
-                      <td className="p-2 border border-black font-bold">{t.taskTitle}</td>
-                      <td className="p-2 border border-black">{t.assignedDepartmentName ? `🏢 ${t.assignedDepartmentName}` : (t.assignedToName || 'Individual')}</td>
-                      <td className="p-2 border border-black">{t.taskType || t.urgency}</td>
-                      <td className="p-2 border border-black font-semibold">{t.status}</td>
-                      <td className="p-2 border border-black font-mono">{t.dueDate ? new Date(t.dueDate).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'None'}</td>
-                      <td className="p-2 border border-black whitespace-pre-wrap">{msg}</td>
+                    <tr key={t.taskId}>
+                      <td className="font-bold text-slate-900">{t.taskTitle}</td>
+                      <td>{t.assignedDepartmentName ? `🏢 ${t.assignedDepartmentName}` : (t.assignedToName || 'Individual')}</td>
+                      <td>
+                        <span className="font-semibold">{t.taskType || t.urgency || 'Normal'}</span>
+                      </td>
+                      <td className="font-semibold">{t.status}</td>
+                      <td className="font-mono">{t.dueDate ? new Date(t.dueDate).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'None'}</td>
+                      <td className="whitespace-pre-wrap">{msg}</td>
                     </tr>
                   );
                 })}

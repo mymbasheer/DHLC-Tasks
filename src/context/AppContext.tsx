@@ -154,7 +154,7 @@ export interface AppContextType {
   cancelVoiceRecord: () => void;
   handleCommentImageUpload: (file: File) => Promise<void>;
   addComment: () => Promise<void>;
-  transferTask: (uid: string, reason: string) => Promise<void>;
+  transferTask: (newAssigneeId: string, reason?: string, explicitTask?: Task) => Promise<void>;
   updateTaskStatus: (task: Task, status: string) => Promise<void>;
   markTaskAsRead: (task: Task) => Promise<void>;
   hasUnreadComments: (task: Task) => boolean;
@@ -185,6 +185,12 @@ export interface AppContextType {
   customDialog: any;
   resetPerformanceLeaderboard: () => Promise<void>;
 }
+
+export const getLocalDateString = (d = new Date()) => {
+  const offset = d.getTimezoneOffset();
+  const localDate = new Date(d.getTime() - (offset * 60 * 1000));
+  return localDate.toISOString().split('T')[0];
+};
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -257,7 +263,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const previousTaskIdsRef = useRef<Set<string> | null>(null);
   
   // Dates and Filters
-  const [todayDateKey, setTodayDateKey] = useState(new Date().toISOString().split('T')[0]);
+  const [todayDateKey, setTodayDateKey] = useState(getLocalDateString());
 
   // Department CRUD operations
   const createDepartment = async (departmentName: string, description?: string) => {
@@ -1377,10 +1383,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const transferTask = async (newAssigneeId: string, reason: string) => {
-    if (!currentDetailTask || !newAssigneeId) return;
+  const transferTask = async (newAssigneeId: string, reason = '', explicitTask?: Task) => {
+    const targetTask = explicitTask || currentDetailTask;
+    if (!targetTask || !newAssigneeId) return;
     try {
-      const taskRef = doc(db, 'tasks', currentDetailTask.taskId);
+      const taskRef = doc(db, 'tasks', targetTask.taskId);
       const assignee = usersList.find(u => u.uid === newAssigneeId);
       
       let assigneeName = 'Admin';
@@ -1388,33 +1395,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         assigneeName = assignee.name;
       }
 
-      const transferLogs = currentDetailTask.transferHistory || [];
+      const nowIso = new Date().toISOString();
+      const transferLogs = targetTask.transferHistory || [];
       transferLogs.push({
-        fromId: currentDetailTask.assignedTo,
-        fromName: currentDetailTask.assignedToName,
+        fromId: targetTask.assignedTo,
+        fromName: targetTask.assignedToName || 'Unassigned',
         toId: newAssigneeId,
         toName: assigneeName,
-        timestamp: new Date().toISOString(),
+        timestamp: nowIso,
         reason: reason || ''
       });
 
       // Post system comment to notify task creator/admin
-      const comments = currentDetailTask.comments || [];
+      const comments = targetTask.comments || [];
       const systemComment = {
         commentId: 'comm_sys_' + Math.random().toString(36).substr(2, 9),
-        authorId: user.uid,
-        authorName: 'System Log',
-        authorRole: 'System',
-        text: `Task transferred from ${currentDetailTask.assignedToName} to ${assigneeName}. Reason: ${reason || 'No reason specified'}`,
-        createdAt: new Date().toISOString()
+        authorId: user?.uid || 'system',
+        authorName: user?.displayName || user?.name || 'System Log',
+        authorRole: userRole || 'System',
+        text: `Task transferred from ${targetTask.assignedToName || 'Unassigned'} to ${assigneeName}. Reason: ${reason || 'Direct Assignment/Transfer'}`,
+        createdAt: nowIso
       };
       comments.push(systemComment);
+
+      const auditLog = {
+        logId: 'log_' + Math.random().toString(36).substr(2, 9),
+        timestamp: nowIso,
+        actorId: user?.uid || 'system',
+        actorName: user?.displayName || user?.name || 'System',
+        action: 'Task Transferred / Reassigned',
+        details: `Reassigned from ${targetTask.assignedToName || 'Unassigned'} to ${assigneeName}. Reason: ${reason || 'Direct Transfer'}`
+      };
+      const auditTrail = [...(targetTask.auditTrail || []), auditLog];
 
       await setDoc(taskRef, {
         assignedTo: newAssigneeId,
         assignedToName: assigneeName,
         transferHistory: transferLogs,
-        comments
+        comments,
+        auditTrail,
+        updatedAt: nowIso
       }, { merge: true });
 
       showToast(`Task transferred to ${assigneeName}`, 'success');

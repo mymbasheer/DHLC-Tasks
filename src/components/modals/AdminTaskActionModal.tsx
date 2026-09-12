@@ -99,16 +99,21 @@ export const AdminTaskActionModal: React.FC<AdminTaskActionModalProps> = ({ task
   };
 
   return (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-      <div className="glass rounded-2xl w-full max-w-lg p-6 space-y-5 border border-slate-800 text-left shadow-2xl">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-6 bg-slate-955/80 backdrop-blur-sm">
+      <div className="bg-slate-900 border border-slate-850 rounded-3xl w-full max-w-lg p-6 space-y-5 text-left shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div>
-            <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+            <h3 className="text-base font-bold text-slate-100 flex items-center gap-2 font-sans">
               <span>⚡ Admin Task Control</span>
             </h3>
             <p className="text-xs text-slate-400 mt-0.5 font-semibold">{task.taskTitle}</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-200 text-lg cursor-pointer">✕</button>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+          >
+            ✕
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
